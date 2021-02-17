@@ -51,7 +51,7 @@ void ModbusResourceManager::createSerialPortReader()
 void ModbusResourceManager::createMatildaLSClient()
 {
     ModbusMatildaLSClient *extSocket = new ModbusMatildaLSClient(verboseMode);
-    extSocket->activeDbgMessages = zbyrator->activeDbgMessages;
+    extSocket->activeDbgMessages = false;// zbyrator->activeDbgMessages;
 
     extSocket->initializeSocket(MTD_EXT_NAME_MODBUS);
     QThread *extSocketThrd = new QThread(this); //QT2

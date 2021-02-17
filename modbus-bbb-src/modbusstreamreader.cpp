@@ -15,7 +15,7 @@ ModbusStreamReader::ModbusStreamReader(const quint16 &objecttag, const bool &isT
 
 void ModbusStreamReader::createObjects()
 {
-    createDevices();
+//    createDevices(); it calls in the constructor
 
 //    activateAsyncModeExt( myparams.isTcpMode ? IFACECONNTYPE_TCPCLNT : IFACECONNTYPE_UART );
     if(myparams.isTcpMode){
@@ -27,7 +27,15 @@ void ModbusStreamReader::createObjects()
     }
 
     connect(modbusprocessor, &ModbusEncoderDecoder::sendCommand2zbyrator, this, &ModbusStreamReader::onSendCommand2zbyrator);
+    connect(modbusprocessor, &ModbusEncoderDecoder::sendCommand2dataHolderWOObjectTag, this, &ModbusStreamReader::sendCommand2dataHolderWOObjectTag);
 
+}
+
+//----------------------------------------------------------------------
+
+void ModbusStreamReader::sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString ni, quint16 messagetag)
+{
+    emit sendCommand2dataHolder(pollCode, ni, messagetag, myparams.objecttag);
 }
 
 //----------------------------------------------------------------------
@@ -43,13 +51,14 @@ void ModbusStreamReader::onCommandReceived(quint16 messagetag, quint16 objecttag
 {
 
     if(objecttag == myparams.objecttag){
-        if(isok){
-            //wait for a new data
-            //5 Acknowledge, master should wait
-        }else{
-            //write error
-        }
+        modbusprocessor->onDataHolderCommandReceived(messagetag, isok, messageerror);
+
     }
+}
+
+void ModbusStreamReader::onData2write(QByteArray writearr)
+{
+    write2dev(writearr);
 }
 
 //----------------------------------------------------------------------
@@ -80,38 +89,9 @@ void ModbusStreamReader::mReadyReadTCP()
 
 void ModbusStreamReader::decodeArray(const QByteArray &readArr)
 {
-    //steps
-    // 1 - try to find fresh data in the Data Holder cache
-    // 2 - if data fresh send it to the master, othervise ask matilda-bbb to start poll
-    // 3 - wait for poll data or timeout (9 seconds is the maximum)
-    // 4 - if timeout happens - send error Slave Device Busy, forget about previous request
-    // 5 - if fresh data is received send it
-
-    const QString params = modbusprocessor->generateQuickPollLine(readArr);
-    if(params.isEmpty()){
-        if(verboseMode)
-            qDebug() << "generateQuickPollLine bad request" << readArr.toHex() ;
-        //QVH
-//        h.insert("c", (indx < 0) ? "" : l.at(indx));//name of the command  ui->cbDevCommand->currentData(Qt::UserRole).toString());
-//        h.insert("pc", command);//pollCode
-//        h.insert("d", args);// ui->leDevCommand->text().simplified().trimmed());
+    modbusprocessor->canProcessTheLine(readArr);
 
 
-//        QVariantHash h;
-//        h.insert("c", command);
-//        h.insert("d", args);
-//        if(verboseMode)
-//            qDebug() << "UcCommandServer::command4dev " << command << args;
-//        emit command2extension(MTD_EXT_NAME_ZBYRATOR, MTD_EXT_CUSTOM_COMMAND_0, h);
-
-        QVariantHash pollargs;
-        pollargs.insert("c", 140);
-        pollargs.insert("d", "");
-        emit sendCommand2zbyrator(pollargs, );
-
-
-        return;//write error
-    }
 
 
 }
@@ -161,7 +141,6 @@ QByteArray ModbusStreamReader::readFromTheDevice()
                 }
 
                 if(isReady2readPlg && isThisYourRead(readArr)){// plg->isItYourRead(readArr).value("Tak", false).toBool())
-                    isReadingFinished = true;
                     break;
                 }
             }
@@ -197,7 +176,8 @@ QByteArray ModbusStreamReader::readFromTheDevice()
 
 bool ModbusStreamReader::isThisYourRead(const QByteArray &readArr)
 {
-    return modbusprocessor->isMessageReadingFinished(readArr);
+    ModbusDecodedParams lastmessageparams;
+    return modbusprocessor->isMessageReadingFinished(readArr, lastmessageparams);
 }
 
 
