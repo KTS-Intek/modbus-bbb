@@ -22,9 +22,9 @@ public:
 
 
 signals:
-    void onCommandReceived(quint16 messagetag, quint16 objecttag, bool isok, QString messageerror);
+    void onCommandReceived(QString messagetag, QString objecttag, bool isok, QString messageerror);
 
-    void dataFromCache(quint16 messagetag, quint16 objecttag, QVariantHash lastHash);
+    void dataFromCache(QString messagetag, QString objecttag, QVariantHash lastHash);
 
 public slots:
     void onThreadStartedL0();
@@ -32,10 +32,9 @@ public slots:
     void checkYourConnection();
 
     //for client side
-    void sendCommand2dataHolder(quint16 pollCode, QString ni, quint16 messagetag, quint16 objecttag);
+    void sendCommand2dataHolder(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
 
 
-    void sendCommand2zbyrator(QVariantHash hash , quint16 messagetag);
 
 
 private:

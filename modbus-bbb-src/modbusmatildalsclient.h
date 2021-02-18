@@ -19,13 +19,16 @@ public:
     void decodeReadData(const QVariant &dataVar, const quint16 &command);
 
 signals:
-    void onCommandReceived(quint16 messagetag, quint16 objecttag, bool isok, QString messageerror);
+    void onMatildaCommandReceived(QString messagetag, QString objecttag, bool isok, QString messageerror);
 
 
 public slots:
     //for client side
-    void sendCommand2zbyrator(QVariantHash hash , quint16 messagetag, quint16 objecttag);
 
+    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
+
+private:
+    bool sendCommand2zbyratorHash(QVariantHash hash , QString messagetag, QString objecttag);
 
 };
 

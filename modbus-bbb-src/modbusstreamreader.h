@@ -16,36 +16,47 @@ class ModbusStreamReader : public Conn2modem
 {
     Q_OBJECT
 public:
-    explicit ModbusStreamReader(const quint16 &objecttag, const bool &isTcpMode, const bool &verboseMode, QObject *parent = nullptr);
+    explicit ModbusStreamReader(const QString &objecttag, const bool &isTcpMode, const bool &verboseMode, QObject *parent = nullptr);
 
     ModbusEncoderDecoder *modbusprocessor;//it decodes and creates messages to mosbus masters
 
     struct MyReaderParams
     {
         bool isTcpMode;
-        quint16 objecttag;//any valid number
+        QString objecttag;//any valid number
 
         MyReaderParams() : isTcpMode(false) {}
     } myparams;
 
 
 signals:
-    void sendCommand2zbyrator(QVariantHash hash, quint16 messagetag, quint16 objecttag);
-    void sendCommand2dataHolder(quint16 pollCode, QString ni, quint16 messagetag, quint16 objecttag);
+
+    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
+
+    void sendCommand2dataHolder(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
 
 
 public slots:
     void createObjects();
 
 
-    void sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString ni, quint16 messagetag);
+    //from decoder
+    void sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString ni, QString messagetag);
 
 
 
     //send to matidla local socket
-    void onSendCommand2zbyrator(QVariantHash hash, quint16 messagetag);
+    void onSendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag);
+
+
+
 //matilda local socket answer
-    void onCommandReceived(quint16 messagetag, quint16  objecttag, bool isok, QString messageerror);
+    void onCommandReceived(QString messagetag, QString objecttag, bool isok, QString messageerror);
+
+    void dataFromCache(QString messagetag, QString objecttag, QVariantHash lastHash);
+
+
+    void onMatildaCommandReceived(QString messagetag, QString objecttag, bool isok, QString messageerror);
 
 
     void onData2write(QByteArray writearr);

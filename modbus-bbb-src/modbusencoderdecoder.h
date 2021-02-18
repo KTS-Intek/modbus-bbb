@@ -5,6 +5,9 @@
 ///[!] modbus-base
 #include "modbus-shared/modbusmessanger.h"
 
+
+#include "modbuselectricitymeterhelper.h"
+
 #include <QtCore>
 
 
@@ -41,9 +44,9 @@ public:
     QString generateQuickPollLine(const QByteArray &readArr);
 
 signals:
-    void sendCommand2zbyrator(QVariantHash hash, quint16 messagetag) ;// don't forget to add a tag, quint16 messagetag);
+    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag);// don't forget to add a tag, quint16 messagetag);
 
-    void sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString ni, quint16 messagetag);
+    void sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString ni, QString messagetag);
 
 
     void onData2write(QByteArray writearr);
@@ -54,6 +57,9 @@ signals:
 
     void stopTmrProcessing();
 
+    void startTmrFinitaLaComedia(int msec);
+
+    void startTmrDataHolderProcessing(int msec);
 
 public slots:
     void createObjects();
@@ -64,13 +70,26 @@ public slots:
 
     void sendErrorCode4thisDecoderError(const ModbusDecodedParams &messageparams);
 
+    void startProcessing(const ModbusDecodedParams &lastmessageparams);
+
 
     void restartTimerProcessing();
 
     void onTmrProcessingTimeOut();
 
+    void onTmrFinitaLaComedia();
 
-    void onDataHolderCommandReceived(quint16 messagetag, bool isok, QString messageerror);
+    void onTmrDataHolderProcessingTimeOut();
+
+
+    void onDataHolderCommandReceived(QString messagetag, bool isok, QString messageerror);
+
+    void dataFromCache(QString messagetag, QVariantHash lastHash);
+
+    void onMatildaCommandReceived(QString messagetag, bool isok, QString messageerror);
+
+
+    void onMeterListChanged();
 
 private:
 
@@ -82,7 +101,25 @@ private:
 
     QVariantHash getHashRequest4dataHolder(const quint8 &pollCode, const quint8 &devaddr);
 
-    QVariantHash getHash4pollCodeAndDevAddr(const quint8 &pollCode, const quint8 &devaddr);
+
+    bool isCachedDataAcceptable(const QVariantHash &lastHash, const bool &add2dataHolder);
+
+    bool checkSendDataToTheMaster();
+
+    void sendDataToTheMaster();
+
+    void resetLastMessageVariables();
+
+
+    void fillTheAnswerHash(const quint8 &pollCode, QMap<quint16, quint16> &mapRegisters);
+
+    void startZbyratorPoll(const QString &messagetag);
+
+
+    ModbusAnswerList getVoltageAnswer(const QVariantHash &h);
+    ModbusAnswerList getTotalEnergyAnswer(const QVariantHash &h);
+
+
 
     struct MyDecoderParams
     {
@@ -111,10 +148,17 @@ private:
         quint16 lastStartRegister;
         quint16 lastRegisterCount;
 
-        QStringList messageTags;//I need it to verify the incomming messages
+        QHash<QString,quint8> messageTags;//I need it to verify the incomming messages
 
         bool isWaitingDataHolder;// it is going to sent a request to Data Holder, it timeout occurs start poll
-        bool isWaiting4zbyrator;//the data must be received directly from the meter
+
+
+        QHash<quint8, QVariantHash> dataFromDataHolder;//data buffer
+
+        qint64 msecOfTheRequest;
+
+
+        QHash<QString,quint8> zbyratoRmessageTags;//I need it to verify the incomming messages
 
 
         MyDecoderParams() :
@@ -129,7 +173,7 @@ private:
         {}
     } myparams;
 
-
+    QHash<quint8, QHash<QString, QVariantHash> > cachedDataHolderAnswers;
 
 };
 

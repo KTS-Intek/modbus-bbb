@@ -32,7 +32,46 @@ void ModbusMatildaLSClient::decodeReadData(const QVariant &dataVar, const quint1
 
 }
 
-void ModbusMatildaLSClient::sendCommand2zbyrator(QVariantHash hash, quint16 messagetag, quint16 objecttag)
+void ModbusMatildaLSClient::sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag, QString objecttag)
+{
+
+    //    const QString params = modbusprocessor->generateQuickPollLine(readArr);
+    //    if(params.isEmpty()){
+    //        if(verboseMode)
+    //            qDebug() << "generateQuickPollLine bad request" << readArr.toHex() ;
+    //        //QVH
+    ////        h.insert("c", (indx < 0) ? "" : l.at(indx));//name of the command  ui->cbDevCommand->currentData(Qt::UserRole).toString());
+    ////        h.insert("pc", command);//pollCode
+    ////        h.insert("d", args);// ui->leDevCommand->text().simplified().trimmed());
+
+
+    ////        QVariantHash h;
+    ////        h.insert("c", command);
+    ////        h.insert("d", args);
+    ////        if(verboseMode)
+    ////            qDebug() << "UcCommandServer::command4dev " << command << args;
+    ////        emit command2extension(MTD_EXT_NAME_ZBYRATOR, MTD_EXT_CUSTOM_COMMAND_0, h);
+
+    //        QVariantHash pollargs;
+    //        pollargs.insert("c", int(pollCode));
+    //        pollargs.insert("pc", int(pollCode));
+    //        pollargs.insert("d", QString("-n %1 -i").arg(QString::number(devaddr)));
+
+    //        pollargs.insert("d", "");
+    //        emit sendCommand2zbyrator(pollargs, );
+
+    QVariantHash pollargs;
+    pollargs.insert("c", int(pollCode));
+    pollargs.insert("pc", int(pollCode)); //commnad
+    pollargs.insert("d", QString("-n %1 -i").arg(ni)); //args
+
+
+    sendCommand2zbyratorHash(pollargs, messagetag, objecttag);
+
+}
+
+
+bool ModbusMatildaLSClient::sendCommand2zbyratorHash(QVariantHash hash, QString messagetag, QString objecttag)
 {
     //it starts poll, if necessary
 
@@ -48,8 +87,8 @@ void ModbusMatildaLSClient::sendCommand2zbyrator(QVariantHash hash, quint16 mess
             //    void sendCommand2extension(quint16 extName, quint16 extCommand, QVariant data );
 
     if(state() != QLocalSocket::UnconnectedState){
-      emit onCommandReceived(messagetag, objecttag, false, "there is no connection");
-      return;
+      emit onMatildaCommandReceived(messagetag, objecttag, false, "there is no connection");
+      return false;
     }
 
      QVariantHash h;
@@ -58,10 +97,15 @@ void ModbusMatildaLSClient::sendCommand2zbyrator(QVariantHash hash, quint16 mess
      h.insert("d", hash);//poll arguments
 
      const qint64 r = mWrite2extensionF(QVariant(h), MTD_EXT_COMMAND_2_OTHER_APP);
+
+
+
      if(r > 0){
-         emit onCommandReceived(messagetag, objecttag, true, QString::number(r));
-         return;
+         emit onMatildaCommandReceived(messagetag, objecttag, true, QString::number(r));
+         return true;
      }
-     emit onCommandReceived(messagetag, objecttag, false, QString("Write error, %1, %2").arg(r).arg(errorString()));
+     emit onMatildaCommandReceived(messagetag, objecttag, false, QString("Write error, %1, %2").arg(r).arg(errorString()));
+     return false;
 
 }
+

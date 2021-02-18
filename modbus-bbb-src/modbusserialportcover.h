@@ -1,13 +1,18 @@
-#ifndef MODBUSTCPSERVER_H
-#define MODBUSTCPSERVER_H
+#ifndef MODBUSSERIALPORTCOVER_H
+#define MODBUSSERIALPORTCOVER_H
 
-#include <QTcpServer>
+#include <QObject>
 
-class ModbusTCPServer : public QTcpServer
+#include "modbusstreamreader.h"
+
+
+class ModbusSerialPortCover : public QObject
 {
     Q_OBJECT
 public:
-    explicit ModbusTCPServer(const bool &verboseMode, QObject *parent = nullptr);
+    explicit ModbusSerialPortCover(const bool &verboseMode, QObject *parent = nullptr);
+
+    ModbusStreamReader *streamr;
 
 signals:
 
@@ -32,40 +37,42 @@ signals:
 
 
     void killAllObjects();//stop threads
-    void stopAllSocket();//kill all objectss
 
+
+    void onConnectionUp();
+    void restartReConnectTimer();
 
     void checkDHClientConnection();//to data holder client
 
 public slots:
-    void onThrdStarted();
+    void onThreadStarted();
 
-    void onConnectionDown();
 
-    void kickOffServer();
+    void reconnect2serialPort();
 
-    void stopServerNow();
+    void reloadSettings();
 
-    void startServer();
+    void kickOffAll();
 
-protected:
-    void incomingConnection(qintptr handle);
+
+    void currentOperation(QString messageStrr);
 
 private:
-
-
-    struct MyTcpServerState
+    struct MySerialCoverState
     {
 
-        int activeConnectionCounter;
-        quint64 connectionCounter;
-        quint8 serverStartCounter;//if more than 60 kill the app
+        quint8 serialOpentCounter;//if more than 60 kill the app
+
+        QString portName;
+        qint32 baudRate;
+
 
         bool verboseMode;
-        MyTcpServerState() : activeConnectionCounter(0), connectionCounter(0), verboseMode(false) {}
-    } myserverstate;
-
+        MySerialCoverState() : serialOpentCounter(0),
+            baudRate(19200),
+            verboseMode(false) {}
+    } mystate;
 
 };
 
-#endif // MODBUSTCPSERVER_H
+#endif // MODBUSSERIALPORTCOVER_H

@@ -4,7 +4,7 @@
 
 //----------------------------------------------------------------------
 
-ModbusStreamReader::ModbusStreamReader(const quint16 &objecttag, const bool &isTcpMode, const bool &verboseMode, QObject *parent) :
+ModbusStreamReader::ModbusStreamReader(const QString &objecttag, const bool &isTcpMode, const bool &verboseMode, QObject *parent) :
     Conn2modem(0, verboseMode, parent)
 {
     myparams.isTcpMode = isTcpMode;
@@ -19,35 +19,41 @@ void ModbusStreamReader::createObjects()
 
 //    activateAsyncModeExt( myparams.isTcpMode ? IFACECONNTYPE_TCPCLNT : IFACECONNTYPE_UART );
     if(myparams.isTcpMode){
-        modbusprocessor = new ModbusEncoderDecoder(MODBUS_MODE_RTU, false, this);
-        connect(socket, SIGNAL(readyRead()), this, SLOT(mReadyRead()) );
+        modbusprocessor = new ModbusEncoderDecoder(MODBUS_MODE_TCP, false, this);        
+        connect(socket, &QTcpSocket::readyRead, this, &ModbusStreamReader::mReadyReadTCP);
+        lastConnectionType =IFACECONNTYPE_TCPCLNT;
     }else{
-        modbusprocessor = new ModbusEncoderDecoder(MODBUS_MODE_TCP, false, this);
-        connect(serialPort, SIGNAL(readyRead()), this, SLOT(mReadyRead()) );
+        modbusprocessor = new ModbusEncoderDecoder(MODBUS_MODE_RTU, false, this);
+        connect(serialPort, &QSerialPort::readyRead, this, &ModbusStreamReader::mReadyReadUART);
+        lastConnectionType =IFACECONNTYPE_UART;
+        setIgnoreUartChecks(true);
+
     }
 
     connect(modbusprocessor, &ModbusEncoderDecoder::sendCommand2zbyrator, this, &ModbusStreamReader::onSendCommand2zbyrator);
     connect(modbusprocessor, &ModbusEncoderDecoder::sendCommand2dataHolderWOObjectTag, this, &ModbusStreamReader::sendCommand2dataHolderWOObjectTag);
 
+    connect(modbusprocessor, &ModbusEncoderDecoder::onData2write, this, &ModbusStreamReader::onData2write);
 }
 
 //----------------------------------------------------------------------
 
-void ModbusStreamReader::sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString ni, quint16 messagetag)
+void ModbusStreamReader::sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString ni, QString messagetag)
 {
     emit sendCommand2dataHolder(pollCode, ni, messagetag, myparams.objecttag);
 }
 
 //----------------------------------------------------------------------
 
-void ModbusStreamReader::onSendCommand2zbyrator(QVariantHash hash, quint16 messagetag)
+void ModbusStreamReader::onSendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag)
 {
-    emit sendCommand2zbyrator(hash, messagetag, myparams.objecttag);
+
+    emit sendCommand2zbyrator(pollCode, ni, messagetag, myparams.objecttag);
 }
 
 //----------------------------------------------------------------------
 
-void ModbusStreamReader::onCommandReceived(quint16 messagetag, quint16 objecttag, bool isok, QString messageerror)
+void ModbusStreamReader::onCommandReceived(QString messagetag, QString objecttag, bool isok, QString messageerror)
 {
 
     if(objecttag == myparams.objecttag){
@@ -55,6 +61,28 @@ void ModbusStreamReader::onCommandReceived(quint16 messagetag, quint16 objecttag
 
     }
 }
+
+//----------------------------------------------------------------------
+
+void ModbusStreamReader::dataFromCache(QString messagetag, QString objecttag, QVariantHash lastHash)
+{
+    if(objecttag == myparams.objecttag){
+        modbusprocessor->dataFromCache(messagetag, lastHash);
+
+    }
+}
+
+//----------------------------------------------------------------------
+
+void ModbusStreamReader::onMatildaCommandReceived(QString messagetag, QString objecttag, bool isok, QString messageerror)
+{
+    if(objecttag == myparams.objecttag){
+        modbusprocessor->onMatildaCommandReceived(messagetag, isok, messageerror);
+
+    }
+}
+
+//----------------------------------------------------------------------
 
 void ModbusStreamReader::onData2write(QByteArray writearr)
 {
@@ -65,9 +93,9 @@ void ModbusStreamReader::onData2write(QByteArray writearr)
 
 void ModbusStreamReader::mReadyReadUART()
 {
-    disconnect(serialPort, SIGNAL(readyRead()), this, SLOT(mReadyRead()) );
+    disconnect(serialPort, &QSerialPort::readyRead, this, &ModbusStreamReader::mReadyReadUART);
     const QByteArray readArr = readFromTheDevice();
-    connect(serialPort, SIGNAL(readyRead()), this, SLOT(mReadyRead()) );
+    connect(serialPort, &QSerialPort::readyRead, this, &ModbusStreamReader::mReadyReadUART);
 
     decodeArray(readArr);
 
@@ -77,9 +105,9 @@ void ModbusStreamReader::mReadyReadUART()
 
 void ModbusStreamReader::mReadyReadTCP()
 {
-    disconnect(socket, SIGNAL(readyRead()), this, SLOT(mReadyRead()) );
+    disconnect(socket, &QTcpSocket::readyRead, this, &ModbusStreamReader::mReadyReadTCP);
     const QByteArray readArr = readFromTheDevice();
-    connect(socket, SIGNAL(readyRead()), this, SLOT(mReadyRead()) );
+    connect(socket, &QTcpSocket::readyRead, this, &ModbusStreamReader::mReadyReadTCP);
     decodeArray(readArr);
 
 

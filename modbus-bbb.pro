@@ -69,9 +69,11 @@ SOURCES += \
         main.cpp \
         modbus-bbb-src/modbusconfigurationfilewatcher.cpp \
         modbus-bbb-src/modbusdataholderclient.cpp \
+        modbus-bbb-src/modbuselectricitymeterhelper.cpp \
         modbus-bbb-src/modbusencoderdecoder.cpp \
         modbus-bbb-src/modbusmatildalsclient.cpp \
         modbus-bbb-src/modbusresourcemanager.cpp \
+        modbus-bbb-src/modbusserialportcover.cpp \
         modbus-bbb-src/modbusstreamreader.cpp \
         modbus-bbb-src/modbustcpserver.cpp
 
@@ -83,8 +85,11 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 HEADERS += \
     modbus-bbb-src/modbusconfigurationfilewatcher.h \
     modbus-bbb-src/modbusdataholderclient.h \
+    modbus-bbb-src/modbuselectricitymeterhelper.h \
     modbus-bbb-src/modbusencoderdecoder.h \
+    modbus-bbb-src/modbusencoderdecodertypes.h \
     modbus-bbb-src/modbusmatildalsclient.h \
     modbus-bbb-src/modbusresourcemanager.h \
+    modbus-bbb-src/modbusserialportcover.h \
     modbus-bbb-src/modbusstreamreader.h \
     modbus-bbb-src/modbustcpserver.h

@@ -73,7 +73,7 @@ void ModbusDataHolderClient::checkYourConnection()
 
 //----------------------------------------------------------------------------------------------
 
-void ModbusDataHolderClient::sendCommand2dataHolder(quint16 pollCode, QString ni, quint16 messagetag, quint16 objecttag)
+void ModbusDataHolderClient::sendCommand2dataHolder(quint16 pollCode, QString ni, QString messagetag, QString objecttag)
 {
     if(state() != QLocalSocket::ConnectedState){
         emit onCommandReceived(messagetag, objecttag, false, "there is no connection");
@@ -101,8 +101,8 @@ void ModbusDataHolderClient::sendCommand2dataHolder(quint16 pollCode, QString ni
 
 void ModbusDataHolderClient::onDATAHOLDER_GET_POLLDATA(const QVariantHash &hash)
 {
-    const quint16 messagetag = hash.value("messagetag").toUInt();
-    const quint16 objecttag = hash.value("objecttag").toUInt();
+    const QString messagetag = hash.value("messagetag").toString();
+    const QString objecttag = hash.value("objecttag").toString();
 
     if(hash.contains("varlist")){
         const QVariantList l = hash.value("varlist").toList();

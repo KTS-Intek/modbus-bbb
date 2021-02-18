@@ -2,6 +2,7 @@
 #define MODBUSRESOURCEMANAGER_H
 
 #include <QObject>
+#include <QVariantHash>
 
 class ModbusResourceManager : public QObject
 {
@@ -17,16 +18,31 @@ public:
 signals:
     void killAllAndDie();
 
+    void append2log(QString message);
 
 
-//to matilda local socket
-    void sendCommand2zbyrator(QVariantHash hash, quint16 messagetag, quint16 objecttag);
-    //from matilda local socket
-    void onCommandReceived(quint16 messagetag, quint16  objecttag, bool isok, QString messageerror);
+    //from streamreader
+    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
 
+    void sendCommand2dataHolder(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
+    //to streamreader
+
+    //matilda local socket answer
+    void onCommandReceived(QString messagetag, QString  objecttag, bool isok, QString messageerror);
+
+    void dataFromCache(QString messagetag, QString objecttag, QVariantHash lastHash);
+
+
+    void onMatildaCommandReceived(QString messagetag, QString objecttag, bool isok, QString messageerror);
+
+
+    void checkDHClientConnection();//to data holder client
 
 public slots:
     void createObjects();
+
+
+    void restartApp();
 
 
 
