@@ -34,6 +34,10 @@ void ModbusStreamReader::createObjects()
     connect(modbusprocessor, &ModbusEncoderDecoder::sendCommand2dataHolderWOObjectTag, this, &ModbusStreamReader::sendCommand2dataHolderWOObjectTag);
 
     connect(modbusprocessor, &ModbusEncoderDecoder::onData2write, this, &ModbusStreamReader::onData2write);
+
+    if(verboseMode)
+        qDebug() << "ModbusStreamReader::createObjects " << QTime::currentTime().toString("hh:mm:ss.zzz") << myparams.isTcpMode << lastConnectionType;
+
 }
 
 //----------------------------------------------------------------------
@@ -117,6 +121,10 @@ void ModbusStreamReader::mReadyReadTCP()
 
 void ModbusStreamReader::decodeArray(const QByteArray &readArr)
 {
+
+    if(verboseMode)
+        qDebug() << "ModbusStreamReader::decodeArray " << QTime::currentTime().toString("hh:mm:ss.zzz") << readArr;
+
     modbusprocessor->canProcessTheLine(readArr);
 
 

@@ -64,6 +64,8 @@ void ModbusSerialPortCover::reconnect2serialPort()
 
     if(streamr->openSerialPort(true, mystate.portName, mystate.baudRate, mystate.portName.split(" "),
                                8, 1, 1, 0)){
+        qDebug() << "ModbusSerialPortCover port is opened " << mystate.portName;
+
         return;
     }
 

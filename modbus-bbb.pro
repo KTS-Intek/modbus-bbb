@@ -77,10 +77,7 @@ SOURCES += \
         modbus-bbb-src/modbusstreamreader.cpp \
         modbus-bbb-src/modbustcpserver.cpp
 
-# Default rules for deployment.
-qnx: target.path = /tmp/$${TARGET}/bin
-else: unix:!android: target.path = /opt/$${TARGET}/bin
-!isEmpty(target.path): INSTALLS += target
+
 
 HEADERS += \
     modbus-bbb-src/modbusconfigurationfilewatcher.h \

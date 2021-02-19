@@ -53,7 +53,7 @@ public:
    static OnePhaseRealData getSummPhaseData(const OnePhaseRealData &phasea, const OnePhaseRealData &phaseb, const OnePhaseRealData &phasec);
 
 
-   static OnePhaseModbusAnswerFormat convert2answerFormat(const OnePhaseRealData &indata);
+   static OnePhaseModbusAnswerFormat convert2answerFormat(const OnePhaseRealData &indata, const bool &useHighPrec4power);
 
 
 };

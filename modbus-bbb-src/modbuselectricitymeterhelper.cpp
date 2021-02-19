@@ -1,6 +1,8 @@
 #include "modbuselectricitymeterhelper.h"
 
 #include <QtMath>
+#include <QDebug>
+#include <QDateTime>
 
 
 //-------------------------------------------------------------------------------------------
@@ -26,10 +28,11 @@ MODBUSDIVIDED_UINT32 ModbusElectricityMeterHelper::getDividedUInt32(const quint3
 //-------------------------------------------------------------------------------------------
 
 void ModbusElectricityMeterHelper::addDividedInt322thelist(ModbusAnswerList &list, const qint32 &value)
-{
+{//big endian
     const MODBUSDIVIDED_INT32 r = getDividedInt32(value);
-    list.append(r.lowword);
     list.append(r.highword);
+    list.append(r.lowword);
+
 
 }
 
@@ -38,8 +41,9 @@ void ModbusElectricityMeterHelper::addDividedInt322thelist(ModbusAnswerList &lis
 void ModbusElectricityMeterHelper::addDividedUInt322thelist(ModbusAnswerList &list, const quint32 &value)
 {
     const MODBUSDIVIDED_UINT32 r = getDividedUInt32(value);
-    list.append(r.lowword);
     list.append(r.highword);
+    list.append(r.lowword);
+
 }
 
 //-------------------------------------------------------------------------------------------
@@ -85,11 +89,11 @@ ModbusAnswerList ModbusElectricityMeterHelper::getVoltageAnswer(const QVariantHa
     const OnePhaseRealData phasesumm = getSummPhaseData(phasea, phaseb, phasec);
 
 
-    const OnePhaseModbusAnswerFormat phaseA = convert2answerFormat(phasea);
-    const OnePhaseModbusAnswerFormat phaseB = convert2answerFormat(phaseb);
-    const OnePhaseModbusAnswerFormat phaseC = convert2answerFormat(phasec);
+    const OnePhaseModbusAnswerFormat phaseA = convert2answerFormat(phasea, true);
+    const OnePhaseModbusAnswerFormat phaseB = convert2answerFormat(phaseb, true);
+    const OnePhaseModbusAnswerFormat phaseC = convert2answerFormat(phasec, true);
 
-    const OnePhaseModbusAnswerFormat phaseSumm = convert2answerFormat(phasesumm);
+    const OnePhaseModbusAnswerFormat phaseSumm = convert2answerFormat(phasesumm, true);
 
 
     ModbusAnswerList l;
@@ -106,30 +110,81 @@ ModbusAnswerList ModbusElectricityMeterHelper::getVoltageAnswer(const QVariantHa
     //frequency uint16
     l.append(freqHz);//40010
 
-    addDividedInt322thelist(l, phaseSumm.activepower);//40011-12
-    addDividedInt322thelist(l, phaseSumm.reactivepower);//40013-14
-    addDividedInt322thelist(l, phaseSumm.apparentpower);//40015-16
+    l.append(0xFFFF);//40011 nothing
 
     //phases pf
-    l.append(phaseA.powerfactor);//40017
-    l.append(phaseB.powerfactor);//40018
-    l.append(phaseC.powerfactor);//40019
+    l.append(phaseSumm.powerfactor);//40012
+
+    l.append(phaseA.powerfactor);//40013
+    l.append(phaseB.powerfactor);//40014
+    l.append(phaseC.powerfactor);//40015
+
+
+    addDividedInt322thelist(l, phaseSumm.activepower);//40016-17
+    addDividedInt322thelist(l, phaseSumm.reactivepower);//40018-19
+    addDividedInt322thelist(l, phaseSumm.apparentpower);//40020-21
+
 
 
     //int32 phases Apparent
-    addDividedInt322thelist(l, phaseA.apparentpower);//40020-21
-    addDividedInt322thelist(l, phaseB.apparentpower);//40022-23
-    addDividedInt322thelist(l, phaseC.apparentpower);//40024-25
+    addDividedInt322thelist(l, phaseA.apparentpower);//40022-23
+    addDividedInt322thelist(l, phaseB.apparentpower);//40024-25
+    addDividedInt322thelist(l, phaseC.apparentpower);//40026-27
 
     //int32 phases Active
-    addDividedInt322thelist(l, phaseA.activepower);//40026-27
-    addDividedInt322thelist(l, phaseB.activepower);//40028-29
-    addDividedInt322thelist(l, phaseC.activepower);//40030-31
+    addDividedInt322thelist(l, phaseA.activepower);//40028-29
+    addDividedInt322thelist(l, phaseB.activepower);//40030-31
+    addDividedInt322thelist(l, phaseC.activepower);//40032-33
 
     //int32 phases Reactive
-    addDividedInt322thelist(l, phaseA.reactivepower);//40032-33
-    addDividedInt322thelist(l, phaseB.reactivepower);//40034-35
-    addDividedInt322thelist(l, phaseC.reactivepower);//40036-37
+    addDividedInt322thelist(l, phaseA.reactivepower);//40034-35
+    addDividedInt322thelist(l, phaseB.reactivepower);//40036-37
+    addDividedInt322thelist(l, phaseC.reactivepower);//40038-39
+
+
+    QList<qreal> voltagetable;
+    QStringList tablenames;
+
+   voltagetable.append(phasesumm.activepower);
+   tablenames.append("Active");
+
+   voltagetable.append(phasesumm.reactivepower);
+   tablenames.append("Reactive");
+
+   voltagetable.append(phasesumm.apparentpower);
+   tablenames.append("Apparent");
+
+
+   voltagetable.append(phasea.apparentpower);
+   tablenames.append("Apparent A");
+
+   voltagetable.append(phaseb.apparentpower);
+   tablenames.append("Apparent B");
+
+   voltagetable.append(phasec.apparentpower);
+   tablenames.append("Apparent C");
+
+
+   voltagetable.append(phasesumm.powerfactor);
+   tablenames.append("Power factor");
+
+
+   voltagetable.append(phasea.current);
+   tablenames.append("Current A");
+
+   voltagetable.append(phaseb.current);
+   tablenames.append("Current B");
+
+   voltagetable.append(phasec.current);
+   tablenames.append("Current C");
+
+   qDebug() << "Voltage table  " << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
+   qDebug() << " ----------------------------- ";
+   for(int i = 0, imax = voltagetable.size(); i < imax; i++){
+       qDebug() << tablenames.at(i) <<  QString::number(voltagetable.at(i), 'f', 3);
+   }
+   qDebug() << "----------------------------- ";
+   qDebug() << "Voltage table ----------------------------- ";
 
 
     return l;
@@ -140,26 +195,26 @@ ModbusAnswerList ModbusElectricityMeterHelper::getVoltageAnswer(const QVariantHa
 
 ModbusAnswerList ModbusElectricityMeterHelper::getTotalEnergyAnswer(const QVariantHash &hdata)
 {
-//    "T0_A+": "854.136",   40041-42
-//    "T0_A-": "!",         40043-44
-//    "T0_R+": "11.22",     40045-46
-//    "T0_R-": "22.33",     40047-48
-//    "T1_A+": "835.618",   40049-50
-//    "T1_A-": "!",         40051-52
-//    "T1_R+": "33.44",     40053-54
-//    "T1_R-": "44.55",     40055-56
-//    "T2_A+": "18.518",    40057-58
-//    "T2_A-": "!",         40059-60
-//    "T2_R+": "55.66",     40061-62
-//    "T2_R-": "66.77",     40063-64
-//    "T3_A+": "?",         40065-66
-//    "T3_A-": "77.88",     40067-68
-//    "T3_R+": "88.99",     40069-70
-//    "T3_R-": "?",         40071-72
-//    "T4_A+": "?",         40073-74
-//    "T4_A-": "!",         40075-76
-//    "T4_R+": "?",         40077-78
-//    "T4_R-": "?"          40079-80
+//    "T0_A+": "854.136",   40201-202
+//    "T0_A-": "!",         40203-204
+//    "T0_R+": "11.22",     40205-206
+//    "T0_R-": "22.33",     40207-208
+//    "T1_A+": "835.618",   40209-210
+//    "T1_A-": "!",         40211-212
+//    "T1_R+": "33.44",     40213-214
+//    "T1_R-": "44.55",     40215-216
+//    "T2_A+": "18.518",    40217-218
+//    "T2_A-": "!",         40219-220
+//    "T2_R+": "55.66",     40221-222
+//    "T2_R-": "66.77",     40223-224
+//    "T3_A+": "?",         40225-226
+//    "T3_A-": "77.88",     40227-228
+//    "T3_R+": "88.99",     40229-230
+//    "T3_R-": "?",         40231-232
+//    "T4_A+": "?",         40233-234
+//    "T4_A-": "!",         40235-236
+//    "T4_R+": "?",         40237-238
+//    "T4_R-": "?"          40239-240
 
     const QList<quint32> enrgs = getEnergyValues(hdata);
 
@@ -176,12 +231,19 @@ QList<quint32> ModbusElectricityMeterHelper::getEnergyValues(const QVariantHash 
 {
     QList<quint32> l;
 
+//    const quint16 baduint16 = 0xFFFF;
+    const quint32 baduint32 = 0xFFFFFFFF;
+
+//    const qint16 badint16 = 0x8000;
+//    const qint32 badint32 = 0x80000000;
+
     const QStringList listenrgs = QString("A+ A- R+ R-").split(" ", QString::SkipEmptyParts);
     for(int i = 0, jmax = listenrgs.size(); i < 5; i++){
         for(int j = 0; j < jmax; j++){
-            const qreal v = hdata.value(QString("T%1_%2").arg(i).arg(listenrgs.at(j))).toDouble();
+            bool okv;
+            const qreal v = hdata.value(QString("T%1_%2").arg(i).arg(listenrgs.at(j))).toDouble(&okv);
 
-            const quint32 value = quint32(qAbs(v)/0.1);
+            const quint32 value = okv ? quint32(qAbs(v)/0.1) : baduint32;
             l.append(value);
         }
 
@@ -195,34 +257,37 @@ OnePhaseRealData ModbusElectricityMeterHelper::getOnePhaseData(const QVariantHas
 {
     OnePhaseRealData phased;
 
-    bool okActivePower, okPowerFactor, okReactivePower;
+    phased.voltage      = hdata.value(QString("U%1").arg(phasename)).toDouble(&phased.okVoltage);//V
 
-    phased.voltage      = hdata.value(QString("U%1").arg(phasename)).toDouble();//V
-    phased.current      = hdata.value(QString("I%1").arg(phasename)).toDouble();//A
-    phased.activepower  = hdata.value(QString("P%1").arg(phasename)).toDouble(&okActivePower) * 1000; //kW to W
-    phased.reactivepower = hdata.value(QString("Q%1").arg(phasename)).toDouble(&okReactivePower) * 1000;//kvar to var
-    phased.powerfactor  = hdata.value(QString("cos_f%1").arg(phasename)).toDouble(&okPowerFactor); //cos f
+    phased.current      = hdata.value(QString("I%1").arg(phasename)).toDouble(&phased.okCurrent);//A
+
+    phased.activepower  = hdata.value(QString("P%1").arg(phasename)).toDouble(&phased.okActivePower) ; //kW
+
+    phased.reactivepower = hdata.value(QString("Q%1").arg(phasename)).toDouble(&phased.okReactivePower) ;//kvar
+    phased.powerfactor  = hdata.value(QString("cos_f%1").arg(phasename)).toDouble(&phased.okPowerFactor); //cos f
 
 
     //  a calculated value (Apparent Power A = |(Active Power A / cos φ A)|), where Active Power A and cos φ A are values from the meter;
     //calculated value
-    phased.apparentpower = 0;
-    if(okActivePower){
-        if(okReactivePower){
+    phased.apparentpower = 0; //kVA;
+    phased.okApparentPower = false;
+
+    if(phased.okActivePower){
+        if(phased.okReactivePower){
             //S = sqrt(P^2 + Q^2)
             const qreal pqpow = qPow(phased.activepower,2.0) + qPow(phased.reactivepower, 2.0);
             phased.apparentpower = qSqrt(pqpow);
+            phased.okApparentPower = true;
         }else{
-            if(okPowerFactor && phased.powerfactor != 0.0){//it has some load
+            if(phased.okPowerFactor && phased.powerfactor != 0.0){//it has some load
                 //S = |(P/pf)|
                 //Q = |S| * sin(f)
                 phased.apparentpower = qAbs(phased.activepower/phased.powerfactor);
                 phased.reactivepower = phased.activepower * qSqrt((1 - qPow(phased.powerfactor, 2.0)));
-
+                phased.okReactivePower = phased.okApparentPower = true;
             }
         }
     }
-
     return phased;
 }
 
@@ -231,35 +296,82 @@ OnePhaseRealData ModbusElectricityMeterHelper::getOnePhaseData(const QVariantHas
 OnePhaseRealData ModbusElectricityMeterHelper::getSummPhaseData(const OnePhaseRealData &phasea, const OnePhaseRealData &phaseb, const OnePhaseRealData &phasec)
 {
     OnePhaseRealData phasesumm;
+
+    phasesumm.okActivePower = (phasea.okActivePower || phaseb.okActivePower || phasec.okActivePower);
     phasesumm.activepower = phasea.activepower + phaseb.activepower + phasec.activepower;
+
+
+
+    phasesumm.okReactivePower = (phasea.okReactivePower || phaseb.okReactivePower || phasec.okReactivePower);
     phasesumm.reactivepower = phasea.reactivepower + phaseb.reactivepower + phasec.reactivepower;
+
+    phasesumm.okApparentPower = (phasea.okApparentPower || phaseb.okApparentPower || phasec.okApparentPower);
     phasesumm.apparentpower = phasea.apparentpower + phaseb.apparentpower + phasec.apparentpower;
 
-    phasesumm.voltage = 0.0;
-    phasesumm.current = 0.0;
+    qreal minv = 0.0;
     phasesumm.powerfactor = 0.0;
-    return phasesumm;
+    if(phasea.okPowerFactor && phasea.powerfactor != 0.0){
+        minv++;
+        phasesumm.powerfactor += phasea.powerfactor;
+    }
+    if(phaseb.okPowerFactor && phaseb.powerfactor != 0.0){
+        minv++;
+        phasesumm.powerfactor += phaseb.powerfactor;
+    }
+    if(phasec.okPowerFactor && phasec.powerfactor != 0.0){
+        minv++;
+        phasesumm.powerfactor += phasec.powerfactor;
+    }
+
+    phasesumm.okPowerFactor = (minv > 0);
+
+    if(phasesumm.okPowerFactor)
+        phasesumm.powerfactor = phasesumm.powerfactor / minv;
+
+    phasesumm.voltage = 0.0;    
+    phasesumm.current = 0.0;
+
+    phasesumm.okVoltage = phasesumm.okCurrent = false;
+
+
+
+
+       return phasesumm;
 
 }
 
 //-------------------------------------------------------------------------------------------
 
-OnePhaseModbusAnswerFormat ModbusElectricityMeterHelper::convert2answerFormat(const OnePhaseRealData &indata)
+OnePhaseModbusAnswerFormat ModbusElectricityMeterHelper::convert2answerFormat(const OnePhaseRealData &indata, const bool &useHighPrec4power)
 {
 //    quint16 voltage;//0.01 V
 //    quint32 current;//0.001 A
-//    qint32 activepower;//0.1 W
-//    qint32 reactivepower;//0.1 var
-//    qint32 apparentpower;// 0.1 VA
-//    qint16 powerfactor;//0.001
+//    qint32 activepower;//0.01 kW
+//    qint32 reactivepower;//0.01 kvar
+//    qint32 apparentpower;// 0.01 kVA
+    //    qint16 powerfactor;//0.001
+
+    const quint16 baduint16 = 0xFFFF;
+//    const quint32 baduint32 = 0xFFFFFFFF;
+
+    const qint16 badint16 = 0x8000;
+    const qint32 badint32 = 0x80000000;
+
+    const  qreal divisor = useHighPrec4power ? 0.01 : 0.1;
 
     OnePhaseModbusAnswerFormat phased;
-    phased.voltage      = quint16(indata.voltage/0.01);
-    phased.current      = qint32(indata.current/0.001);
-    phased.activepower  = qint32(indata.activepower/0.1);
-    phased.reactivepower = qint32(indata.reactivepower/0.1);
-    phased.apparentpower = qint32(indata.apparentpower/0.1);
-    phased.powerfactor  = qint16(indata.powerfactor/0.001);
+
+    phased.voltage      = indata.okVoltage ? quint16(indata.voltage/0.01) : baduint16;
+
+    phased.current      = indata.okCurrent ? qint32(indata.current/0.001) : badint32;
+
+    phased.activepower  = indata.okActivePower ? qint32(indata.activepower/divisor) : badint32;
+
+    phased.reactivepower = indata.okReactivePower ? qint32(indata.reactivepower/divisor) : badint32;
+
+    phased.apparentpower = indata.okApparentPower ? qint32(indata.apparentpower/divisor) : badint32;
+
+    phased.powerfactor  = indata.okPowerFactor ? qint16(indata.powerfactor/0.001) : badint16;
 
     return phased;
 }

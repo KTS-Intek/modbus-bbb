@@ -8,11 +8,17 @@
 
 #include "definedpollcodes.h"
 
-#define MYDECODER_READF_FIRST_REGISTER  40001
-#define MYDECODER_READF_LAST_REGISTER   40068
+#define MYDECODER_READF_FIRST_REGISTER          40001
 
 #define MYDECODER_VOLTAGE_REGISTER_FIRST        MYDECODER_READF_FIRST_REGISTER
-#define MYDECODER_TOTALENERGY_REGISTER_FIRST    MYDECODER_READF_FIRST_REGISTER + 40 //40041
+#define MYDECODER_TOTALENERGY_REGISTER_FIRST    40201
+
+
+#define MYDECODER_READF_FIRST_VREGISTER MYDECODER_VOLTAGE_REGISTER_FIRST
+#define MYDECODER_READF_LAST_VREGISTER  40039
+
+#define MYDECODER_READF_FIRST_EREGISTER MYDECODER_TOTALENERGY_REGISTER_FIRST
+#define MYDECODER_READF_LAST_EREGISTER  40240
 
 
 //--------------------------------------------------------------------
@@ -22,10 +28,9 @@ ModbusEncoderDecoder::ModbusEncoderDecoder(const quint8 &modbusDecoderMode, cons
 {
     setModbusMode(modbusDecoderMode);
     setModbusSide(isModbusMasterSide);
-#ifdef __x86_64
+
     //for test only
     onMeterListChanged();
-#endif
 
     createObjects();
 }
@@ -73,8 +78,11 @@ ModbusList ModbusEncoderDecoder::getErrorMessage(const ModbusDecodedParams &mess
 
 QByteArray ModbusEncoderDecoder::getErrorMessageArray(const ModbusDecodedParams &messageparams, const quint8 &errorcode)
 {
-    const ModbusList list = getErrorMessage(messageparams, errorcode);
-    return  ConvertAtype::uint8list2array(list, 0, list.length());//is ready to send message
+    Q_UNUSED(messageparams);
+    Q_UNUSED(errorcode);
+    return QByteArray();
+//    const ModbusList list = getErrorMessage(messageparams, errorcode);
+//    return  ConvertAtype::uint8list2array(list, 0, list.length());//is ready to send message
 
 }
 
@@ -177,20 +185,13 @@ void ModbusEncoderDecoder::canProcessTheLine(const QByteArray &readArr)
             return;
         }
 
-
-
-        if( (startRegister < MYDECODER_READF_FIRST_REGISTER) ||
-                ((startRegister + registerCount) > MYDECODER_READF_LAST_REGISTER) ||
-                (startRegister > MYDECODER_READF_LAST_REGISTER) ||
-                ((startRegister + registerCount) < MYDECODER_READF_FIRST_REGISTER)){
+        if(!isStartRegisterGood(startRegister)){
             sendErrorCodeAndResetTheState(MODBUS_ERROR_ILLEGAL_DATA_VALUE);
             return;
         }
 
         findData4theseRegister(startRegister, registerCount);
-
         //check all registers
-
         return;
 
     }
@@ -200,9 +201,6 @@ void ModbusEncoderDecoder::canProcessTheLine(const QByteArray &readArr)
 //        return;
 //    }
 
-
-
-
 }
 
 //--------------------------------------------------------------------
@@ -210,7 +208,7 @@ void ModbusEncoderDecoder::canProcessTheLine(const QByteArray &readArr)
 void ModbusEncoderDecoder::createObjects()
 {
     QTimer *timer = new QTimer(this);
-    timer->setInterval(7777);
+    timer->setInterval(9500);
     timer->setSingleShot(true);
     connect(this, SIGNAL(startTmrProcessing(int)), timer, SLOT(start(int)));
     connect(this, &ModbusEncoderDecoder::stopTmrProcessing, timer, &QTimer::stop);
@@ -226,7 +224,7 @@ void ModbusEncoderDecoder::createObjects()
     QTimer *timerDataHolder = new QTimer(this);
     timerDataHolder->setInterval(1111);
     timerDataHolder->setSingleShot(true);
-    connect(this, SIGNAL(startTmrDataHolderProcessing(int)), timer, SLOT(start(int)));
+    connect(this, SIGNAL(startTmrDataHolderProcessing(int)), timerDataHolder, SLOT(start(int)));
     connect(this, &ModbusEncoderDecoder::stopTmrProcessing, timerDataHolder, &QTimer::stop);
     connect(timerDataHolder, &QTimer::timeout, this, &ModbusEncoderDecoder::onTmrDataHolderProcessingTimeOut);//create a new requests to Data holder, to get the data
 }
@@ -277,8 +275,10 @@ void ModbusEncoderDecoder::startProcessing(const ModbusDecodedParams &lastmessag
     myparams.msecOfTheRequest = QDateTime::currentMSecsSinceEpoch();
 
     restartTimerProcessing();
-    emit startTmrFinitaLaComedia(55555);
+    emit startTmrFinitaLaComedia(55555);    
     emit startTmrDataHolderProcessing(2222);
+
+    qDebug() << "ModbusEncoderDecoder::startProcessing startTmrDataHolderProcessing ";
 }
 
 //--------------------------------------------------------------------
@@ -303,13 +303,47 @@ void ModbusEncoderDecoder::onTmrProcessingTimeOut()
 
 
     if(myparams.lastmessageparams.devaddress > 0 && myparams.lastmessageparams.devaddress < 248){
+
+
+        const QList<quint8> lk = cachedDataHolderAnswers.keys();
+
+        qDebug() << "ModbusEncoderDecoder::onTmrProcessingTimeOut() " << lk.isEmpty() ;
+
+        if(!lk.isEmpty()){
+
+            bool add2dataHolder;
+            for(int i = 0, imax = lk.size(); i < imax; i++){
+
+                isCachedDataAcceptable(cachedDataHolderAnswers.value(lk.at(i)), true, add2dataHolder);
+
+
+
+            }
+
+            qDebug() << "ModbusEncoderDecoder::onTmrProcessingTimeOut() " << cachedDataHolderAnswers.isEmpty() ;
+
+
+            if(cachedDataHolderAnswers.isEmpty() && checkSendDataToTheMaster()){
+                qDebug() << "ModbusEncoderDecoder::onTmrProcessingTimeOut() lastSecond";
+
+                return;//last second send
+            }
+
+        }
+
+
+
         restartTimerProcessing();
         myparams.processintTimeoutCounter++;
         if(myparams.processintTimeoutCounter > 100){
-            sendErrorCodeAndResetTheState(MODBUS_ERROR_ILLEGAL_SLVEDEVFLR);
+//            sendErrorCodeAndResetTheState(MODBUS_ERROR_ILLEGAL_SLVEDEVFLR);
             return;
         }
-        emit onData2write(getErrorMessageArray(myparams.lastmessageparams, MODBUS_ERROR_ACKNOWLEDGE));
+
+        //if it has any cached acceptable data send it
+
+
+//        emit onData2write(getErrorMessageArray(myparams.lastmessageparams, MODBUS_ERROR_ACKNOWLEDGE));
 
 
     }
@@ -325,6 +359,9 @@ void ModbusEncoderDecoder::onTmrFinitaLaComedia()
 
     if(myparams.lastmessageparams.devaddress > 0 && myparams.lastmessageparams.devaddress < 248){
         qDebug() << "ModbusEncoderDecoder::onTmrFinitaLaComedia ";//it is processing to long
+
+        sendDataToTheMaster();
+
         sendErrorCodeAndResetTheState(MODBUS_ERROR_ILLEGAL_SLVEDEVFLR);
     }
 }
@@ -333,6 +370,9 @@ void ModbusEncoderDecoder::onTmrFinitaLaComedia()
 
 void ModbusEncoderDecoder::onTmrDataHolderProcessingTimeOut()
 {
+
+    qDebug() << "ModbusEncoderDecoder::onTmrDataHolderProcessingTimeOut() myparams.isDecoderBusy=" << myparams.isDecoderBusy;
+
     if(!myparams.isDecoderBusy)
         return;
 
@@ -353,7 +393,8 @@ void ModbusEncoderDecoder::onTmrDataHolderProcessingTimeOut()
     if( (zbyrlen + buflen) >= dhlen){
         //all commands to zbyrator were sent, so Data holder client must be checked
 //or some commands were sent
-        const QString ni = QString::number(myparams.lastmessageparams.devaddress);
+//        const QString ni = QString::number(myparams.lastmessageparams.devaddress);
+        QString ni = myparams.listDevAddr2meterNI.value(myparams.lastmessageparams.devaddress, QString::number(myparams.lastmessageparams.devaddress));
 
         for(int i = 0, imax = lk.size(); i < imax; i++){
             const QString messagetag = lk.at(i);
@@ -381,6 +422,7 @@ void ModbusEncoderDecoder::onTmrDataHolderProcessingTimeOut()
 
 
     }
+    qDebug() << "ModbusEncoderDecoder::onTmrDataHolderProcessingTimeOut startTmrDataHolderProcessing 1111";
 
     emit startTmrDataHolderProcessing(1111);
 
@@ -415,8 +457,23 @@ void ModbusEncoderDecoder::dataFromCache(QString messagetag, QVariantHash lastHa
 {
     //data from DataHolder
     if(myparams.messageTags.contains(messagetag)){
+        const qint64 msec = lastHash.value("msec").toLongLong();
+        const QString ni = lastHash.value("NI").toString();
+        const qint64 currmsec = QDateTime::currentMSecsSinceEpoch();
+        //force zbyrator to poll
+        qDebug() << "ModbusEncoderDecoder::dataFromCache msec " << ni << messagetag
+                 << QDateTime::fromMSecsSinceEpoch(currmsec).toString("yyyy-MM-dd hh:mm:ss.zzz")
+                 << QDateTime::fromMSecsSinceEpoch(msec).toString("yyyy-MM-dd hh:mm:ss.zzz");
 
-        if(!isCachedDataAcceptable(lastHash, true)){
+       //the average delay was 8 seconds
+        bool add2dataHolder;
+        if(!isCachedDataAcceptable(lastHash, false, add2dataHolder)){
+
+            if(add2dataHolder){
+                const quint8 pollCode = lastHash.value("pollCode").toUInt();
+                cachedDataHolderAnswers.insert(pollCode, lastHash);
+            }
+
 
             //force zbyrator to poll
             startZbyratorPoll(messagetag);
@@ -462,7 +519,33 @@ void ModbusEncoderDecoder::onMeterListChanged()
     //it calls when the emeter list changed
     myparams.listMeterNIs.clear();
     myparams.listMeterNIs.append(1);
+    myparams.listMeterNIs.append(3);
 
+    myparams.listDevAddr2meterNI.insert(1, "9653");
+    myparams.listDevAddr2meterNI.insert(3, "64");
+
+
+}
+
+//--------------------------------------------------------------------
+
+bool ModbusEncoderDecoder::isStartRegisterGood(const quint16 &startRegister)
+{
+    return (isVoltageRegister(startRegister) || isEnergyRegister(startRegister));
+}
+
+//--------------------------------------------------------------------
+
+bool ModbusEncoderDecoder::isVoltageRegister(const quint16 &startRegister)
+{
+    return (startRegister >= MYDECODER_VOLTAGE_REGISTER_FIRST && startRegister <= MYDECODER_READF_LAST_VREGISTER);
+}
+
+//--------------------------------------------------------------------
+
+bool ModbusEncoderDecoder::isEnergyRegister(const quint16 &startRegister)
+{
+    return (startRegister >= MYDECODER_TOTALENERGY_REGISTER_FIRST && startRegister <=  MYDECODER_READF_LAST_EREGISTER);
 }
 
 //--------------------------------------------------------------------
@@ -481,15 +564,21 @@ void ModbusEncoderDecoder::findData4theseRegister(const quint16 &startRegister, 
 //#define MYDECODER_VOLTAGE_REGISTER_FIRST        MYDECODER_READF_FIRST_REGISTER
 //#define MYDECODER_TOTALENERGY_REGISTER_FIRST    MYDECODER_READF_FIRST_REGISTER + 28 //40029
 
-    if(startRegister < MYDECODER_TOTALENERGY_REGISTER_FIRST){
 
+//#define MYDECODER_READF_FIRST_VREGISTER MYDECODER_VOLTAGE_REGISTER_FIRST
+//#define MYDECODER_READF_LAST_VREGISTER  40039
+
+//#define MYDECODER_READF_FIRST_EREGISTER MYDECODER_TOTALENERGY_REGISTER_FIRST
+//#define MYDECODER_READF_LAST_EREGISTER  40240
+
+
+    if(isVoltageRegister(startRegister)){
         myparams.lastPollCodes2receive.append(POLL_CODE_READ_VOLTAGE);
         //get voltage
     }
 
-    if((startRegister >= MYDECODER_TOTALENERGY_REGISTER_FIRST) || ((startRegister + count) >  MYDECODER_TOTALENERGY_REGISTER_FIRST) ){
+    if(isEnergyRegister(startRegister)){
         myparams.lastPollCodes2receive.append(POLL_CODE_READ_TOTAL);
-
     }
 
     if(myparams.lastPollCodes2receive.isEmpty()){
@@ -498,8 +587,10 @@ void ModbusEncoderDecoder::findData4theseRegister(const quint16 &startRegister, 
     }
 
     myparams.isWaitingDataHolder = true;
-    QString ni = QString::number(myparams.lastmessageparams.devaddress);
-    bool hasCachedDataAcceptable = false;
+//    QString ni = QString::number(myparams.lastmessageparams.devaddress);
+    QString ni = myparams.listDevAddr2meterNI.value(myparams.lastmessageparams.devaddress, QString::number(myparams.lastmessageparams.devaddress));
+
+//    bool hasCachedDataAcceptable = false;
 
     for(int i = 0, imax = myparams.lastPollCodes2receive.size(); i < imax; i++){
 
@@ -511,26 +602,18 @@ void ModbusEncoderDecoder::findData4theseRegister(const quint16 &startRegister, 
         myparams.messageTags.insert(messagetag, pollCode);
 
 
-
-         const QVariantHash lastHash = cachedDataHolderAnswers.value(pollCode).value(ni);
-
-        if(isCachedDataAcceptable(lastHash, false)){
-            hasCachedDataAcceptable = true;
-            continue;
-        }
-
         emit sendCommand2dataHolderWOObjectTag(pollCode, ni, messagetag);
 
       //add some time btwn requests
-        QThread::msleep(111);
+//        QThread::msleep(111);
     }
 
     //so wait for the answer from the Data Holder
 
-    if(hasCachedDataAcceptable && checkSendDataToTheMaster()){
+    //    if(hasCachedDataAcceptable && checkSendDataToTheMaster()){
 
-        return;
-    }
+    //        return;
+    //    }
     //in other case never mind, it will receive data from the data holder or it will send message SLave internal failure
 
 }
@@ -539,7 +622,8 @@ void ModbusEncoderDecoder::findData4theseRegister(const quint16 &startRegister, 
 
 void ModbusEncoderDecoder::sendErrorCodeAndResetTheState(const quint8 &errorCode)
 {
-    emit onData2write(getErrorMessageArray(myparams.lastmessageparams, errorCode));
+    Q_UNUSED(errorCode);//do not send errors, it stops the exchange
+//    emit onData2write(getErrorMessageArray(myparams.lastmessageparams, errorCode));
     resetLastMessageVariables();
 
 
@@ -569,10 +653,10 @@ bool ModbusEncoderDecoder::isReadFunctionOk(const ModbusDecodedParams &messagepa
 
 //--------------------------------------------------------------------
 
-bool ModbusEncoderDecoder::isCachedDataAcceptable(const QVariantHash &lastHash, const bool &add2dataHolder)
+bool ModbusEncoderDecoder::isCachedDataAcceptable(const QVariantHash &lastHash, const bool &ignoreMsec, bool &add2dataHolder)
 {
 
-
+    add2dataHolder = false;
     //I'm sure that it is my tag
 //    const QVariantList varlist = lastHash.value("data").toHash().value("varlist").toList();
 
@@ -586,21 +670,37 @@ bool ModbusEncoderDecoder::isCachedDataAcceptable(const QVariantHash &lastHash, 
     const QVariantHash h = lastHash;
     const quint8 pollCode = h.value("pollCode").toUInt();
     const QString ni = h.value("NI").toString();
+    const QString nimapped = myparams.listDevAddr2meterNI.value(myparams.lastmessageparams.devaddress, QString::number(myparams.lastmessageparams.devaddress));
 
-    if(!myparams.lastPollCodes2receive.contains(pollCode) || ni.isEmpty() || QString::number(myparams.lastmessageparams.devaddress) != ni){
+    if(!myparams.lastPollCodes2receive.contains(pollCode) || ni.isEmpty() || nimapped != ni){
         //force zbyrator to poll
 
         return false;
     }
 
     const qint64 msec = h.value("msec").toLongLong();
-    const qint64 msecdiff = myparams.msecOfTheRequest - msec;
-    if(qAbs(msecdiff) > 20000){
-        //force zbyrator to poll
-        qDebug() << "ModbusEncoderDecoder::isCachedDataAcceptable msec diff " << msecdiff << lastHash;
+    const qint64 currmsec = QDateTime::currentMSecsSinceEpoch();
+    const qint64 msecdiff = currmsec - msec;
 
-//        return false;
+    const int msecdiffallowed = 30000;
+    if(!ignoreMsec && qAbs(msecdiff) > msecdiffallowed){
+        add2dataHolder = (!myparams.lastPollCodes2send.contains(pollCode));//only if msec is bad
+
+
+        //add2dataHolder - true - received from DataHolderClient, false - internal cache
+
+        //force zbyrator to poll
+        qDebug() << "ModbusEncoderDecoder::isCachedDataAcceptable msec "
+                 << QDateTime::fromMSecsSinceEpoch(currmsec).toString("yyyy-MM-dd hh:mm:ss.zzz")
+                 << QDateTime::fromMSecsSinceEpoch(msec).toString("yyyy-MM-dd hh:mm:ss.zzz");
+
+        qDebug() << "ModbusEncoderDecoder::isCachedDataAcceptable msec diff " << msecdiff << msecdiffallowed << add2dataHolder << lastHash;
+
+
+        return false;
     }
+
+    cachedDataHolderAnswers.remove(pollCode);//it must remove acceptable values
 
     if(myparams.lastPollCodes2send.contains(pollCode)){
         //wtf??? it can't be, but check to be sure
@@ -612,13 +712,8 @@ bool ModbusEncoderDecoder::isCachedDataAcceptable(const QVariantHash &lastHash, 
 
     myparams.lastPollCodes2send.append(pollCode);
 
-    if(add2dataHolder){
-        QHash<QString, QVariantHash> ni2data = cachedDataHolderAnswers.value(pollCode);
-        ni2data.insert(ni, h);
-        cachedDataHolderAnswers.insert(pollCode, ni2data);
-    }
-
     myparams.dataFromDataHolder.insert(pollCode, h);
+
 
     return true;
 }
@@ -642,6 +737,8 @@ bool ModbusEncoderDecoder::checkSendDataToTheMaster()
 
 void ModbusEncoderDecoder::sendDataToTheMaster()
 {
+
+    qDebug() << "sendDataToTheMaster stopTmrProcessing ";
     emit stopTmrProcessing();//to prevent bad situations
 
     QMap<quint16, quint16> mapRegisters;
@@ -693,6 +790,8 @@ void ModbusEncoderDecoder::sendDataToTheMaster()
 
 void ModbusEncoderDecoder::resetLastMessageVariables()
 {
+    qDebug() << "resetLastMessageVariables stopTmrProcessing ";
+
     emit stopTmrProcessing();
 
     myparams.isDecoderBusy = false;
@@ -703,6 +802,7 @@ void ModbusEncoderDecoder::resetLastMessageVariables()
     myparams.isWaitingDataHolder = false;
     myparams.dataFromDataHolder.clear();
     myparams.zbyratoRmessageTags.clear();
+    cachedDataHolderAnswers.clear();
 
 }
 
@@ -717,8 +817,8 @@ void ModbusEncoderDecoder::fillTheAnswerHash(const quint8 &pollCode, QMap<quint1
     quint16 startRegister = 0;
 
     switch(pollCode){
-    case POLL_CODE_READ_VOLTAGE : l = getVoltageAnswer(h)    ; startRegister = MYDECODER_READF_FIRST_REGISTER; break;
-    case POLL_CODE_READ_TOTAL   : l = getTotalEnergyAnswer(h); startRegister = MYDECODER_TOTALENERGY_REGISTER_FIRST; break;
+    case POLL_CODE_READ_VOLTAGE : l = getVoltageAnswer(h)    ; startRegister = MYDECODER_READF_FIRST_VREGISTER; break;
+    case POLL_CODE_READ_TOTAL   : l = getTotalEnergyAnswer(h); startRegister = MYDECODER_READF_FIRST_EREGISTER; break;
     }
 
 
@@ -733,6 +833,7 @@ void ModbusEncoderDecoder::fillTheAnswerHash(const quint8 &pollCode, QMap<quint1
 
 void ModbusEncoderDecoder::startZbyratorPoll(const QString &messagetag)
 {
+    qDebug() << "ModbusEncoderDecoder::startZbyratorPoll " << messagetag << myparams.zbyratoRmessageTags.contains(messagetag) << myparams.messageTags.contains(messagetag);
     if(myparams.zbyratoRmessageTags.contains(messagetag) || !myparams.messageTags.contains(messagetag))
         return;//it was done before
 
@@ -740,7 +841,9 @@ void ModbusEncoderDecoder::startZbyratorPoll(const QString &messagetag)
 
     myparams.zbyratoRmessageTags.insert(messagetag, pollCode);
 
-    QString ni = QString::number(myparams.lastmessageparams.devaddress);
+    QString ni = myparams.listDevAddr2meterNI.value(myparams.lastmessageparams.devaddress, QString::number(myparams.lastmessageparams.devaddress));
+
+    qDebug() << "ModbusEncoderDecoder::startZbyratorPoll " << ni << int(pollCode) << QString::number(myparams.lastmessageparams.devaddress) << messagetag;
 
     emit sendCommand2zbyrator(pollCode, ni, messagetag);
 }

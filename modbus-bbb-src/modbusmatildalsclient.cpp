@@ -86,7 +86,7 @@ bool ModbusMatildaLSClient::sendCommand2zbyratorHash(QVariantHash hash, QString 
     //            break;}
             //    void sendCommand2extension(quint16 extName, quint16 extCommand, QVariant data );
 
-    if(state() != QLocalSocket::UnconnectedState){
+    if(state() != QLocalSocket::ConnectedState){
       emit onMatildaCommandReceived(messagetag, objecttag, false, "there is no connection");
       return false;
     }

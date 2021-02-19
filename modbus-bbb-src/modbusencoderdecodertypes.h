@@ -6,12 +6,24 @@
 
 struct OnePhaseRealData
 {
+    bool okVoltage;
     qreal voltage;
+
+    bool okCurrent;
     qreal current;
+
+    bool okActivePower;
     qreal activepower;
+
+    bool okReactivePower;
     qreal reactivepower;
+
+    bool okApparentPower;
     qreal apparentpower;
+
+    bool okPowerFactor;
     qreal powerfactor;
+
     OnePhaseRealData() {}
 };
 

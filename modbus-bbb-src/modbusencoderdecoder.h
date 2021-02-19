@@ -93,6 +93,14 @@ public slots:
 
 private:
 
+    bool isStartRegisterGood(const quint16 &startRegister);
+
+    bool isVoltageRegister(const quint16 &startRegister);
+
+    bool isEnergyRegister(const quint16 &startRegister);
+
+
+
     void findData4theseRegister(const quint16 &startRegister, const quint16 &count);
 
     void sendErrorCodeAndResetTheState(const quint8 &errorCode);
@@ -102,7 +110,7 @@ private:
     QVariantHash getHashRequest4dataHolder(const quint8 &pollCode, const quint8 &devaddr);
 
 
-    bool isCachedDataAcceptable(const QVariantHash &lastHash, const bool &add2dataHolder);
+    bool isCachedDataAcceptable(const QVariantHash &lastHash, const bool &ignoreMsec, bool &add2dataHolder);
 
     bool checkSendDataToTheMaster();
 
@@ -130,6 +138,8 @@ private:
         bool isModbusMasterSide;//it must false here
 
         QList<quint8> listMeterNIs;//only acceptable values
+        QHash<quint8,QString> listDevAddr2meterNI;
+
 
         ModbusDecodedParams lastmessageparams; //last message that is processed
 
@@ -173,7 +183,7 @@ private:
         {}
     } myparams;
 
-    QHash<quint8, QHash<QString, QVariantHash> > cachedDataHolderAnswers;
+    QHash<quint8,  QVariantHash > cachedDataHolderAnswers;//only for one device
 
 };
 
