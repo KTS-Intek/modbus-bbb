@@ -17,7 +17,9 @@ class ModbusEncoderDecoder : public ModbusMessanger
 {
     Q_OBJECT
 public:
-    explicit ModbusEncoderDecoder(const quint8 &modbusDecoderMode, const bool &isModbusMasterSide, QObject *parent = nullptr);
+    explicit ModbusEncoderDecoder(const bool &verboseMode, const quint8 &modbusDecoderMode, const bool &isModbusMasterSide, QObject *parent = nullptr);
+
+    bool verboseMode;
 
     quint8 getModbusMode();
 
@@ -61,6 +63,9 @@ signals:
 
     void startTmrDataHolderProcessing(int msec);
 
+    void onSerialPortName(QString serialportname);
+
+
 public slots:
     void createObjects();
 
@@ -89,7 +94,9 @@ public slots:
     void onMatildaCommandReceived(QString messagetag, bool isok, QString messageerror);
 
 
+    void reloadAllSettings();
     void onMeterListChanged();
+    void onMeterListExtChanged();
 
 private:
 

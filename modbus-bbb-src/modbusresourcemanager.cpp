@@ -72,6 +72,9 @@ void ModbusResourceManager::createTcpServer()
 
     connect(server, &ModbusTCPServer::checkDHClientConnection, this, &ModbusResourceManager::checkDHClientConnection);
 
+
+    connect(this, &ModbusResourceManager::onConfigChanged, server, &ModbusTCPServer::onConfigChanged);
+
     thread->start();
 
 }
@@ -103,6 +106,7 @@ void ModbusResourceManager::createSerialPortReader()
     connect(this, &ModbusResourceManager::onMatildaCommandReceived  , serialp, &ModbusSerialPortCover::onMatildaCommandReceived);
     connect(this, &ModbusResourceManager::dataFromCache             , serialp, &ModbusSerialPortCover::dataFromCache);
 
+    connect(this, &ModbusResourceManager::onConfigChanged, serialp, &ModbusSerialPortCover::onConfigChanged);
 
     thread->start();
 
@@ -120,7 +124,7 @@ void ModbusResourceManager::createMatildaLSClient()
 #endif
     ModbusMatildaLSClient *extSocket = new ModbusMatildaLSClient(verboseMode);
     extSocket->activeDbgMessages = false;// zbyrator->activeDbgMessages;
-
+    extSocket->verboseMode = verboseMode;//force to enable
     extSocket->initializeSocket(MTD_EXT_NAME_MODBUS);
     QThread *extSocketThrd = new QThread(this); //QT2
     extSocketThrd->setObjectName("ModbusMatildaLSClient");
@@ -131,7 +135,7 @@ void ModbusResourceManager::createMatildaLSClient()
 #endif
     connect(extSocketThrd, &QThread::started, extSocket, &ModbusMatildaLSClient::onThreadStarted);
 
-//    connect(extSocket, &ModbusMatildaLSClient::onConfigChanged , zbyrator, &MeterManager::onConfigChanged  );
+    connect(extSocket, &ModbusMatildaLSClient::onConfigChanged , this, &ModbusResourceManager::onConfigChanged  );
 //    connect(extSocket, &ModbusMatildaLSClient::command4dev     , zbyrator, &MeterManager::command4devStr      );
 
 //    connect(this, &ModbusResourceManager::command2extensionClient, extSocket, &ModbusMatildaLSClient::command2extensionClient   ); do not use it here

@@ -31,6 +31,18 @@ class ModbusElectricityMeterHelper
 
 public:
 
+    static QList<quint8> getAcceptableEMeterNis();
+
+
+    static QHash<quint8,QString> getMapDevAddr2ni();
+
+    static QHash<quint8,QString> getMapDevAddr2niExt(QString &serilaPortName);
+
+    static QString getSerialPortName();
+
+    static QStringList getDevNIList();//it is a temporary solution, because I don't want to change protcol
+
+
     static MODBUSDIVIDED_INT32 getDividedInt32(const qint32 &value);
     static MODBUSDIVIDED_UINT32 getDividedUInt32(const quint32 &value);
 
@@ -38,14 +50,14 @@ public:
     static void addDividedUInt322thelist(ModbusAnswerList &list, const quint32 &value);
 
 
-    static ModbusAnswerList getVoltageAnswer(const QVariantHash &hdata);
-   static ModbusAnswerList getTotalEnergyAnswer(const QVariantHash &hdata);
+    static ModbusAnswerList getVoltageAnswer(const QVariantHash &hdata, const bool &verboseMode);
+   static ModbusAnswerList getTotalEnergyAnswer(const QVariantHash &hdata, const bool &verboseMode);
 
 
 
 //   static QList<quint32> convertEnergy2answerFormat(QList<qreal>);
 
-   static QList<quint32> getEnergyValues(const QVariantHash &hdata);
+   static QList<quint32> getEnergyValues(const QVariantHash &hdata, QList<qreal> &realv, QStringList &tablekeys);
 
 
    static OnePhaseRealData getOnePhaseData(const QVariantHash &hdata, const QString &phasename);

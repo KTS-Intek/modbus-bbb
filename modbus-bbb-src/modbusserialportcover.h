@@ -44,6 +44,9 @@ signals:
 
     void checkDHClientConnection();//to data holder client
 
+//on settings changed
+    void onConfigChanged(quint16 command, QVariant datavar);
+
 public slots:
     void onThreadStarted();
 
@@ -56,6 +59,9 @@ public slots:
 
 
     void currentOperation(QString messageStrr);
+
+
+    void onSerialPortName(QString serialportname);
 
 private:
     struct MySerialCoverState

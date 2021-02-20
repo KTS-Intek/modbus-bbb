@@ -35,6 +35,7 @@ signals:
 
     void sendCommand2dataHolder(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
 
+    void onSerialPortName(QString serialportname);
 
 public slots:
     void createObjects();
@@ -60,6 +61,12 @@ public slots:
 
 
     void onData2write(QByteArray writearr);
+
+    //on settings changed
+    void onConfigChanged(quint16 command, QVariant datavar);
+
+
+
 
 private slots:
     void mReadyReadUART();

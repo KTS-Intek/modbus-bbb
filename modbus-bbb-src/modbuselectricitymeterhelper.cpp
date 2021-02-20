@@ -5,6 +5,130 @@
 #include <QDateTime>
 
 
+///[!] matilda-bbb-settings
+#include "src/matilda/settloader4matilda.h"
+
+
+///[!] MatildaIO
+#include "matilda-bbb-src/shared/pathsresolver.h"
+
+#include <QFile>
+#include <QDataStream>
+
+
+#include "matildalimits.h"
+
+//-------------------------------------------------------------------------------------------
+
+QList<quint8> ModbusElectricityMeterHelper::getAcceptableEMeterNis()
+{
+    QList<quint8> devadds;
+
+
+    QFile file(PathsResolver::path2electricityMetersList());
+    if(file.open(QFile::ReadOnly)){
+
+        QDataStream stream(&file);
+        stream.setVersion(QDataStream::Qt_5_6);
+
+        for(quint32 i = 0; !stream.atEnd() && i < MAX_METER_COUNT; i++){
+            QVariantHash hash;
+            stream >> hash;
+            if(hash.isEmpty())
+                continue;
+
+            if((hash.value("on",false).toBool() && hash.value("on").toString() != "-")|| hash.value("on").toString() == "+"){
+                bool ok;
+                const quint64 add = hash.value("NI").toULongLong(&ok);
+                if(ok && add > 0 && add <= 248)//I need only acceptable modbus addresses
+                    devadds.append(quint8(add));
+
+
+            }
+
+
+        }
+        file.close();
+    }
+    return devadds;
+}
+
+//-------------------------------------------------------------------------------------------
+
+QHash<quint8, QString> ModbusElectricityMeterHelper::getMapDevAddr2ni()
+{
+    QString serialPortName;
+   return getMapDevAddr2niExt(serialPortName);
+
+}
+
+//-------------------------------------------------------------------------------------------
+
+
+QHash<quint8, QString> ModbusElectricityMeterHelper::getMapDevAddr2niExt(QString &serilaPortName)
+{
+    QHash<quint8, QString> h;
+    const QStringList l = getDevNIList();
+
+
+    /*
+     * rs485=<port name>
+     * <devaddr>=<NI>
+     */
+
+    for(int i = 0, imax = l.size(); i < imax; i++){
+        const QStringList lines = l.at(i).split("=", QString::SkipEmptyParts);
+
+
+        if(lines.size() >= 2){
+
+            bool ok;
+
+            const quint64 add = lines.at(0).toULongLong(&ok);
+            const QString value = lines.at(1).simplified().trimmed();
+
+            if(value.isEmpty())
+                continue;
+
+            if(ok && add > 0 && add <= 248){//I need only acceptable modbus addresses
+                h.insert(quint8(add), value);
+            }else{
+                if(lines.at(0) == "rs485" )
+                    serilaPortName = value;
+            }
+
+        }
+
+
+
+
+    }
+    return h;
+
+}
+
+
+//-------------------------------------------------------------------------------------------
+
+QString ModbusElectricityMeterHelper::getSerialPortName()
+{
+    QString serialPortName;
+    getMapDevAddr2niExt(serialPortName);
+    return serialPortName;
+}
+
+//-------------------------------------------------------------------------------------------
+
+QStringList ModbusElectricityMeterHelper::getDevNIList()
+{
+    const QString s = SettLoader4matilda().loadOneSett(SETT_ABOUT_MEMO).toString();
+
+
+
+    return s.split("\n", QString::SkipEmptyParts);
+}
+
+
 //-------------------------------------------------------------------------------------------
 
 MODBUSDIVIDED_INT32 ModbusElectricityMeterHelper::getDividedInt32(const qint32 &value)
@@ -48,7 +172,7 @@ void ModbusElectricityMeterHelper::addDividedUInt322thelist(ModbusAnswerList &li
 
 //-------------------------------------------------------------------------------------------
 
-ModbusAnswerList ModbusElectricityMeterHelper::getVoltageAnswer(const QVariantHash &hdata)
+ModbusAnswerList ModbusElectricityMeterHelper::getVoltageAnswer(const QVariantHash &hdata, const bool &verboseMode)
 {
 
     //40001-40037
@@ -178,22 +302,23 @@ ModbusAnswerList ModbusElectricityMeterHelper::getVoltageAnswer(const QVariantHa
    voltagetable.append(phasec.current);
    tablenames.append("Current C");
 
-   qDebug() << "Voltage table  " << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
-   qDebug() << " ----------------------------- ";
-   for(int i = 0, imax = voltagetable.size(); i < imax; i++){
-       qDebug() << tablenames.at(i) <<  QString::number(voltagetable.at(i), 'f', 3);
+   if(verboseMode){
+       qDebug()  << "Voltage table  " << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
+       qDebug()  << " ----------------------------- ";
+       for(int i = 0, imax = voltagetable.size(); i < imax; i++){
+           qDebug()  << tablenames.at(i) <<  QString::number(voltagetable.at(i), 'f', 3);
+       }
+       qDebug()  << "----------------------------- ";
+       qDebug()  << "Voltage table ----------------------------- ";
+
    }
-   qDebug() << "----------------------------- ";
-   qDebug() << "Voltage table ----------------------------- ";
-
-
-    return l;
+   return l;
 
 }
 
 //-------------------------------------------------------------------------------------------
 
-ModbusAnswerList ModbusElectricityMeterHelper::getTotalEnergyAnswer(const QVariantHash &hdata)
+ModbusAnswerList ModbusElectricityMeterHelper::getTotalEnergyAnswer(const QVariantHash &hdata, const bool &verboseMode)
 {
 //    "T0_A+": "854.136",   40201-202
 //    "T0_A-": "!",         40203-204
@@ -216,18 +341,36 @@ ModbusAnswerList ModbusElectricityMeterHelper::getTotalEnergyAnswer(const QVaria
 //    "T4_R+": "?",         40237-238
 //    "T4_R-": "?"          40239-240
 
-    const QList<quint32> enrgs = getEnergyValues(hdata);
+    QList<qreal> energytable;
+    QStringList tablenames;
+
+    const QList<quint32> enrgs = getEnergyValues(hdata, energytable, tablenames);
 
     ModbusAnswerList l;
+
+
+
     for(int i = 0, imax = enrgs.size(); i < imax; i++){
         addDividedUInt322thelist(l, enrgs.at(i));
     }
+
+    if(verboseMode){
+        qDebug()  << "Energy table  " << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
+        qDebug()  << " ----------------------------- ";
+        for(int i = 0, imax = energytable.size(); i < imax; i++){
+            qDebug()  << tablenames.at(i) <<  QString::number(energytable.at(i), 'f', 3);
+        }
+        qDebug()  << "----------------------------- ";
+        qDebug()  << "Energy table ----------------------------- ";
+
+    }
+
     return l;
 }
 
 //-------------------------------------------------------------------------------------------
 
-QList<quint32> ModbusElectricityMeterHelper::getEnergyValues(const QVariantHash &hdata)
+QList<quint32> ModbusElectricityMeterHelper::getEnergyValues(const QVariantHash &hdata, QList<qreal> &realv, QStringList &tablekeys)
 {
     QList<quint32> l;
 
@@ -241,8 +384,12 @@ QList<quint32> ModbusElectricityMeterHelper::getEnergyValues(const QVariantHash 
     for(int i = 0, jmax = listenrgs.size(); i < 5; i++){
         for(int j = 0; j < jmax; j++){
             bool okv;
-            const qreal v = hdata.value(QString("T%1_%2").arg(i).arg(listenrgs.at(j))).toDouble(&okv);
+            const QString key = QString("T%1_%2").arg(i).arg(listenrgs.at(j));
 
+            const qreal v = hdata.value(key).toDouble(&okv);
+
+            tablekeys.append(key);
+            realv.append(v);
             const quint32 value = okv ? quint32(qAbs(v)/0.1) : baduint32;
             l.append(value);
         }

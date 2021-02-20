@@ -1,6 +1,7 @@
 #include "modbusstreamreader.h"
 
 #include "embeelimits.h"
+#include "moji_defy.h"
 
 //----------------------------------------------------------------------
 
@@ -19,14 +20,16 @@ void ModbusStreamReader::createObjects()
 
 //    activateAsyncModeExt( myparams.isTcpMode ? IFACECONNTYPE_TCPCLNT : IFACECONNTYPE_UART );
     if(myparams.isTcpMode){
-        modbusprocessor = new ModbusEncoderDecoder(MODBUS_MODE_TCP, false, this);        
+        modbusprocessor = new ModbusEncoderDecoder(verboseMode, MODBUS_MODE_TCP, false, this);
         connect(socket, &QTcpSocket::readyRead, this, &ModbusStreamReader::mReadyReadTCP);
         lastConnectionType =IFACECONNTYPE_TCPCLNT;
     }else{
-        modbusprocessor = new ModbusEncoderDecoder(MODBUS_MODE_RTU, false, this);
+        modbusprocessor = new ModbusEncoderDecoder(verboseMode, MODBUS_MODE_RTU, false, this);
         connect(serialPort, &QSerialPort::readyRead, this, &ModbusStreamReader::mReadyReadUART);
         lastConnectionType =IFACECONNTYPE_UART;
         setIgnoreUartChecks(true);
+
+        connect(modbusprocessor, &ModbusEncoderDecoder::onSerialPortName, this, &ModbusStreamReader::onSerialPortName);
 
     }
 
@@ -38,6 +41,7 @@ void ModbusStreamReader::createObjects()
     if(verboseMode)
         qDebug() << "ModbusStreamReader::createObjects " << QTime::currentTime().toString("hh:mm:ss.zzz") << myparams.isTcpMode << lastConnectionType;
 
+    modbusprocessor->reloadAllSettings();
 }
 
 //----------------------------------------------------------------------
@@ -91,6 +95,31 @@ void ModbusStreamReader::onMatildaCommandReceived(QString messagetag, QString ob
 void ModbusStreamReader::onData2write(QByteArray writearr)
 {
     write2dev(writearr);
+}
+
+//----------------------------------------------------------------------
+
+void ModbusStreamReader::onConfigChanged(quint16 command, QVariant datavar)
+{
+    if(verboseMode)
+        qDebug() << "========================== ModbusStreamReader::onConfigChanged " << command << datavar;
+
+
+     switch(command){
+     case MTD_EXT_COMMAND_RELOAD_SETT: {//reaload all settings
+         modbusprocessor->onMeterListChanged();
+//         stopWait4conf(); //it sends reloadSettings();
+ //        reloadMeters(UC_METER_ELECTRICITY);
+
+         break;}
+
+     case MTD_EXT_CUSTOM_COMMAND_0:{
+         modbusprocessor->onMeterListExtChanged();
+
+         break;}
+     }
+
+
 }
 
 //----------------------------------------------------------------------

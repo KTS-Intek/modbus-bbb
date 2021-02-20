@@ -38,11 +38,17 @@ signals:
 
     void checkDHClientConnection();//to data holder client
 
+
+//on settings chagned
+    void onConfigChanged(quint16 command, QVariant datavar);
+
 public slots:
     void createObjects();
 
 
     void restartApp();
+
+
 
 
 

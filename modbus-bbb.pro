@@ -63,6 +63,7 @@ include(../../../Matilda-units/ifaces/ifaces/ifaces.pri)
 
 include(../../../Matilda-units/matilda-base/MatildaIO/MatildaIO.pri)
 
+include(../../../Matilda-units/matilda-bbb/matilda-bbb-settings/matilda-bbb-settings.pri)
 
 
 SOURCES += \

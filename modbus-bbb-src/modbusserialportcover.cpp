@@ -41,6 +41,8 @@ void ModbusSerialPortCover::onThreadStarted()
 
     connect(this, &ModbusSerialPortCover::killAllObjects, streamr, &ModbusStreamReader::deleteLater);
 
+    connect(streamr, &ModbusStreamReader::onSerialPortName, this, &ModbusSerialPortCover::onSerialPortName);
+
     if(mystate.verboseMode)
         connect(streamr, &ModbusStreamReader::currentOperation, this, &ModbusSerialPortCover::currentOperation);
 
@@ -48,6 +50,7 @@ void ModbusSerialPortCover::onThreadStarted()
 
     connect(this, &ModbusSerialPortCover::onConnectionUp, this, &ModbusSerialPortCover::checkDHClientConnection);
 
+    connect(this, &ModbusSerialPortCover::onConfigChanged, streamr, &ModbusStreamReader::onConfigChanged);
 
     QTimer::singleShot(111, this, SLOT(reloadSettings()));
 
@@ -75,8 +78,6 @@ void ModbusSerialPortCover::reconnect2serialPort()
 
 void ModbusSerialPortCover::reloadSettings()
 {
-    //for test only
-    mystate.portName = "ttyUSB0";
     streamr->closeDevice();
     emit restartReConnectTimer();
 }
@@ -91,4 +92,15 @@ void ModbusSerialPortCover::currentOperation(QString messageStrr)
 {
     qDebug() << "ModbusSerialPortCover " << messageStrr;
 
+}
+
+void ModbusSerialPortCover::onSerialPortName(QString serialportname)
+{
+    qDebug() << "ModbusSerialPortCover serialportname " << serialportname;
+
+    if(serialportname != mystate.portName){
+
+        mystate.portName = serialportname;
+        reloadSettings();
+    }
 }

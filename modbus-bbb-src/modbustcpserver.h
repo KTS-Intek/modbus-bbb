@@ -37,6 +37,9 @@ signals:
 
     void checkDHClientConnection();//to data holder client
 
+    //on settings changed
+    void onConfigChanged(quint16 command, QVariant datavar);
+
 public slots:
     void onThrdStarted();
 

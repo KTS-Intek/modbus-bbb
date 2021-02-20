@@ -16,7 +16,15 @@ void ModbusMatildaLSClient::decodeReadData(const QVariant &dataVar, const quint1
 {
     //only commands for modbus-bbb
     switch(command){
-//    case MTD_EXT_CUSTOM_COMMAND_0: {
+    case MTD_EXT_CUSTOM_COMMAND_0: {
+        qDebug() << "default MTD_EXT_CUSTOM_COMMAND_0 " << command << mtdExtName << dataVar; emit onConfigChanged(command,dataVar);
+
+        break;}
+
+    case MTD_EXT_COMMAND_RELOAD_SETT: {
+        qDebug() << "default MTD_EXT_COMMAND_RELOAD_SETT " << command << mtdExtName << dataVar; emit onConfigChanged(command,dataVar);
+
+        break;}
 //        if(verboseMode) qDebug() << "ext " << mtdExtName << dataVar;
 // #ifdef ENABLE_VERBOSE_SERVER
 //        if(activeDbgMessages)
