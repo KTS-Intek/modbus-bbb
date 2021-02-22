@@ -6,6 +6,7 @@
 #include "modbustcpserver.h"
 #include "modbusserialportcover.h"
 #include "modbusdataholderclient.h"
+#include "modbustcpoutservice.h"
 
 
 #include "moji_defy.h"
@@ -29,10 +30,7 @@ void ModbusResourceManager::createObjectsLater()
 
 void ModbusResourceManager::createObjects()
 {
-    createMatildaLSClient();
-    createDataHolderClient();
-    createTcpServer();
-    createSerialPortReader();
+    createTcpOutService();
 }
 
 //--------------------------------------------------------------------------------
@@ -42,6 +40,37 @@ void ModbusResourceManager::restartApp()
     if(verboseMode)
         qDebug() << "ModbusResourceManager::restartApp() " << QObject::sender()->objectName();
     qApp->exit(0);
+}
+
+void ModbusResourceManager::onLogingServiceIsReady()
+{
+    QThread::sleep(10);
+    createMatildaLSClient();
+    createDataHolderClient();
+    createTcpServer();
+    createSerialPortReader();
+}
+
+//--------------------------------------------------------------------------------
+
+void ModbusResourceManager::createTcpOutService()
+{
+    ModbusTcpOutService *server = new ModbusTcpOutService;
+    QThread *thread = new QThread;
+
+    thread->setObjectName("ModbusTcpOutService");
+    server->moveToThread(thread);
+
+    connect(thread, &QThread::started, server, &ModbusTcpOutService::initServer);
+    connect(server, SIGNAL(destroyed(QObject*)), thread, SLOT(quit()));
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+
+    connect(this, &ModbusResourceManager::killAllAndDie, server, &ModbusTcpOutService::killAllAndStop);
+
+    connect(this, &ModbusResourceManager::append2log, server, &ModbusTcpOutService::appendTextLog);
+    connect(thread, &QThread::started, this, &ModbusResourceManager::onLogingServiceIsReady);
+
+     thread->start();
 }
 
 //--------------------------------------------------------------------------------
@@ -75,6 +104,8 @@ void ModbusResourceManager::createTcpServer()
 
     connect(this, &ModbusResourceManager::onConfigChanged, server, &ModbusTCPServer::onConfigChanged);
 
+    connect(server, &ModbusTCPServer::append2log, this, &ModbusResourceManager::append2log);
+
     thread->start();
 
 }
@@ -107,6 +138,9 @@ void ModbusResourceManager::createSerialPortReader()
     connect(this, &ModbusResourceManager::dataFromCache             , serialp, &ModbusSerialPortCover::dataFromCache);
 
     connect(this, &ModbusResourceManager::onConfigChanged, serialp, &ModbusSerialPortCover::onConfigChanged);
+
+    connect(serialp, &ModbusSerialPortCover::append2log, this, &ModbusResourceManager::append2log);
+    connect(serialp, &ModbusSerialPortCover::restartApp, this, &ModbusResourceManager::restartApp);
 
     thread->start();
 

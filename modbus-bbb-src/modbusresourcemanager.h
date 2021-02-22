@@ -42,6 +42,7 @@ signals:
 //on settings chagned
     void onConfigChanged(quint16 command, QVariant datavar);
 
+
 public slots:
     void createObjects();
 
@@ -49,10 +50,14 @@ public slots:
     void restartApp();
 
 
+    void onLogingServiceIsReady();
 
 
 
 private:
+    void createTcpOutService();
+
+
     void createTcpServer();
 
     void createSerialPortReader();

@@ -76,6 +76,7 @@ SOURCES += \
         modbus-bbb-src/modbusresourcemanager.cpp \
         modbus-bbb-src/modbusserialportcover.cpp \
         modbus-bbb-src/modbusstreamreader.cpp \
+        modbus-bbb-src/modbustcpoutservice.cpp \
         modbus-bbb-src/modbustcpserver.cpp
 
 
@@ -90,4 +91,5 @@ HEADERS += \
     modbus-bbb-src/modbusresourcemanager.h \
     modbus-bbb-src/modbusserialportcover.h \
     modbus-bbb-src/modbusstreamreader.h \
+    modbus-bbb-src/modbustcpoutservice.h \
     modbus-bbb-src/modbustcpserver.h
