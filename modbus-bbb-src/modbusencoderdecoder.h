@@ -65,6 +65,7 @@ signals:
 
     void onSerialPortName(QString serialportname);
 
+    void append2textLog(QString message);
 
 public slots:
     void createObjects();

@@ -37,6 +37,8 @@ signals:
 
     void onSerialPortName(QString serialportname);
 
+
+
 public slots:
     void createObjects();
 

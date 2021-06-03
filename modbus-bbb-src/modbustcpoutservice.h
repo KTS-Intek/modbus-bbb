@@ -22,6 +22,11 @@ public slots:
 
     void startServer();
 
+    void dataReadWriteReal(QByteArray arr, QString ifaceName, bool isRead);
+
+
+
+
 
     void appendTextLog(QString lines);
 

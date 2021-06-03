@@ -55,7 +55,7 @@ void ModbusSerialPortCover::onThreadStarted()
     connect(this, &ModbusSerialPortCover::onConfigChanged, streamr, &ModbusStreamReader::onConfigChanged);
 
 
-
+    connect(streamr, &ModbusStreamReader::dataReadWriteReal, this, &ModbusSerialPortCover::dataReadWriteReal);
 
     QTimer::singleShot(111, streamr, SLOT(createObjects()));// this, SLOT(reloadSettings()));
 

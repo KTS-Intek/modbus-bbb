@@ -27,6 +27,13 @@ void ModbusTcpOutService::startServer()
     QTimer::singleShot(1111, this, SLOT(startServer()));
 }
 
+void ModbusTcpOutService::dataReadWriteReal(QByteArray arr, QString ifaceName, bool isRead)
+{
+    appendTextLog(QString("%1 %2 %3").arg(ifaceName).arg( isRead ? " > " : " < " ).arg(QString(arr.toHex())));
+}
+
+
+
 void ModbusTcpOutService::appendTextLog(QString lines)
 {
     emit write2socket(QString("%1 %2\n").arg(QDateTime::currentDateTime().toString("yyyy/MM/dd hh:mm:ss.zzz t")).arg(lines).toUtf8());

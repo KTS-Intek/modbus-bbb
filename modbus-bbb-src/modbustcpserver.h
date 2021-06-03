@@ -11,6 +11,8 @@ public:
 
 signals:
 
+    void dataReadWriteReal(QByteArray arr, QString ifaceName, bool isRead);
+
     //to the resource manager
     void append2log(QString message);
     void restartApp();

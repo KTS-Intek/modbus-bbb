@@ -129,6 +129,8 @@ void ModbusTCPServer::incomingConnection(qintptr handle)
 
     connect(this, &ModbusTCPServer::onConfigChanged, streamr, &ModbusStreamReader::onConfigChanged);
 
+    connect(streamr, &ModbusStreamReader::dataReadWriteReal, this, &ModbusTCPServer::dataReadWriteReal);
+
     if(streamr->socket->state() != QTcpSocket::ConnectedState){
         streamr->deleteLater();
     }else{

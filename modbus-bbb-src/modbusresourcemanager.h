@@ -20,6 +20,12 @@ signals:
 
     void append2log(QString message);
 
+    void dataReadWriteReal(QByteArray arr, QString ifaceName, bool isRead);
+
+
+
+
+
 
     //from streamreader
     void sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag, QString objecttag);

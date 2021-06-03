@@ -174,6 +174,8 @@ void ModbusEncoderDecoder::canProcessTheLine(const QByteArray &readArr)
         }else{
             myparams.busyCounter++;
         }
+        emit append2textLog(QString("myparams.isDecoderBusy, address '%1'").arg(int(lastmessageparams.devaddress)));
+
         return;
         //
     }
@@ -195,6 +197,8 @@ void ModbusEncoderDecoder::canProcessTheLine(const QByteArray &readArr)
             sendErrorCodeAndResetTheState(MODBUS_ERROR_ILLEGAL_DATA_VALUE);
             return;
         }
+        emit append2textLog(QString("findData4theseRegister, address '%1', startRegister '%2', registerCount '%3'")
+                            .arg(int(lastmessageparams.devaddress)).arg(int(startRegister)).arg(int(registerCount)));
 
         findData4theseRegister(startRegister, registerCount);
         //check all registers
@@ -720,7 +724,7 @@ bool ModbusEncoderDecoder::isCachedDataAcceptable(const QVariantHash &lastHash, 
     const qint64 currmsec = QDateTime::currentMSecsSinceEpoch();
     const qint64 msecdiff = currmsec - msec;
 
-    const int msecdiffallowed = 30000;
+    const int msecdiffallowed = 30000 + 60000;
     if(!ignoreMsec && qAbs(msecdiff) > msecdiffallowed){
         add2dataHolder = (!myparams.lastPollCodes2send.contains(pollCode));//only if msec is bad
 

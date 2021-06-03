@@ -68,7 +68,11 @@ void ModbusResourceManager::createTcpOutService()
     connect(this, &ModbusResourceManager::killAllAndDie, server, &ModbusTcpOutService::killAllAndStop);
 
     connect(this, &ModbusResourceManager::append2log, server, &ModbusTcpOutService::appendTextLog);
+
+    connect(this, &ModbusResourceManager::dataReadWriteReal, server, &ModbusTcpOutService::dataReadWriteReal);
+
     connect(thread, &QThread::started, this, &ModbusResourceManager::onLogingServiceIsReady);
+
 
      thread->start();
 }
@@ -106,6 +110,9 @@ void ModbusResourceManager::createTcpServer()
 
     connect(server, &ModbusTCPServer::append2log, this, &ModbusResourceManager::append2log);
 
+    connect(server, &ModbusTCPServer::dataReadWriteReal, this, &ModbusResourceManager::dataReadWriteReal);
+
+
     thread->start();
 
 }
@@ -141,6 +148,8 @@ void ModbusResourceManager::createSerialPortReader()
 
     connect(serialp, &ModbusSerialPortCover::append2log, this, &ModbusResourceManager::append2log);
     connect(serialp, &ModbusSerialPortCover::restartApp, this, &ModbusResourceManager::restartApp);
+
+    connect(serialp, &ModbusSerialPortCover::dataReadWriteReal, this, &ModbusResourceManager::dataReadWriteReal);
 
     thread->start();
 

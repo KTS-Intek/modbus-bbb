@@ -38,6 +38,8 @@ void ModbusStreamReader::createObjects()
 
     connect(modbusprocessor, &ModbusEncoderDecoder::onData2write, this, &ModbusStreamReader::onData2write);
 
+    connect(modbusprocessor, &ModbusEncoderDecoder::append2textLog, this, &ModbusStreamReader::currentOperation);
+
     if(verboseMode)
         qDebug() << "ModbusStreamReader::createObjects " << QTime::currentTime().toString("hh:mm:ss.zzz") << myparams.isTcpMode << lastConnectionType;
 
@@ -154,6 +156,7 @@ void ModbusStreamReader::decodeArray(const QByteArray &readArr)
     if(verboseMode)
         qDebug() << "ModbusStreamReader::decodeArray " << QTime::currentTime().toString("hh:mm:ss.zzz") << readArr;
 
+
     modbusprocessor->canProcessTheLine(readArr);
 
 
@@ -228,7 +231,8 @@ QByteArray ModbusStreamReader::readFromTheDevice()
             }
         }
 
-//        if(!readArr.isEmpty())
+        if(!readArr.isEmpty())
+            emit dataReadWriteReal(readArr, ifaceName, true);
 //            onDataFromIface(readArr, uartIsBusy);
 
     }
