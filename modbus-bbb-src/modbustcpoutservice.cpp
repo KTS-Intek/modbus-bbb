@@ -4,6 +4,8 @@
 #include <QDateTime>
 #include <QTimer>
 
+#include "modbustcpoutsocket.h"
+
 ModbusTcpOutService::ModbusTcpOutService(QObject *parent) : QTcpServer(parent)
 {
 
@@ -48,18 +50,19 @@ void ModbusTcpOutService::killAllAndStop()
 
 void ModbusTcpOutService::incomingConnection(qintptr handle)
 {
-    QTcpSocket *socket = new QTcpSocket(this);
+
+    ModbusTcpOutSocket *socket = new ModbusTcpOutSocket(this);
 
     if(!socket->setSocketDescriptor(handle)){
         socket->deleteLater();
         return;
     }
 
-    connect(this, &ModbusTcpOutService::write2socket, [=](QByteArray lines){
-        socket->write(lines);
-    });
+    connect(this, &ModbusTcpOutService::write2socket, socket, &ModbusTcpOutSocket::write2socket);/* [=](QByteArray lines){
+        socket->write(lines); it makes big problems, after sockets connect and disconnect
+    });*/
 
-    connect(this, &ModbusTcpOutService::killAll, socket, &QTcpSocket::close);
-    connect(socket, &QTcpSocket::disconnected, socket, &QTcpSocket::deleteLater);
+    connect(this, &ModbusTcpOutService::killAll, socket, &ModbusTcpOutSocket::close);
+    connect(socket, &QTcpSocket::disconnected, socket, &ModbusTcpOutSocket::deleteLater);
 
 }
