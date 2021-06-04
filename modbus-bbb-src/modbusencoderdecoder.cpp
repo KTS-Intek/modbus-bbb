@@ -337,6 +337,8 @@ void ModbusEncoderDecoder::onTmrProcessingTimeOut()
 
 
             if(cachedDataHolderAnswers.isEmpty() && checkSendDataToTheMaster()){
+                emit append2textLog("onTmrProcessingTimeOut checkSendDataToTheMaster");
+
                 if(verboseMode)
                     qDebug()  << "ModbusEncoderDecoder::onTmrProcessingTimeOut() lastSecond";
 
@@ -350,6 +352,8 @@ void ModbusEncoderDecoder::onTmrProcessingTimeOut()
         restartTimerProcessing();
         myparams.processintTimeoutCounter++;
         if(myparams.processintTimeoutCounter > 100){
+
+            emit append2textLog("sendErrorCodeAndResetTheState(MODBUS_ERROR_ILLEGAL_SLVEDEVFLR)");
             //            sendErrorCodeAndResetTheState(MODBUS_ERROR_ILLEGAL_SLVEDEVFLR);
             return;
         }
@@ -503,6 +507,7 @@ void ModbusEncoderDecoder::dataFromCache(QString messagetag, QVariantHash lastHa
         }
 
         if(checkSendDataToTheMaster()){
+            emit append2textLog("dataFromCache checkSendDataToTheMaster");
             return;//everything is fine, it is ready to process the next request
         }
     }
@@ -726,7 +731,7 @@ bool ModbusEncoderDecoder::isCachedDataAcceptable(const QVariantHash &lastHash, 
     const qint64 currmsec = QDateTime::currentMSecsSinceEpoch();
     const qint64 msecdiff = currmsec - msec;
 
-    const int msecdiffallowed = 30000 + 60000;
+    const int msecdiffallowed = 300000; //5 minutes
     if(!ignoreMsec && qAbs(msecdiff) > msecdiffallowed){
         add2dataHolder = (!myparams.lastPollCodes2send.contains(pollCode));//only if msec is bad
 

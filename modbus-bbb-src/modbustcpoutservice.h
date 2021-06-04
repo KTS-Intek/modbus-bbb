@@ -35,6 +35,9 @@ public slots:
 protected:
     void incomingConnection(qintptr handle);
 
+private:
+    QStringList lastLines;
+
 
 
 };

@@ -38,6 +38,9 @@ void ModbusTcpOutService::dataReadWriteReal(QByteArray arr, QString ifaceName, b
 
 void ModbusTcpOutService::appendTextLog(QString lines)
 {
+    lastLines.append(lines);
+    if(lastLines.size() > 250)
+        lastLines = lastLines.mid(50);
     emit write2socket(QString("%1 %2\n").arg(QDateTime::currentDateTime().toString("yyyy/MM/dd hh:mm:ss.zzz t")).arg(lines).toUtf8());
 }
 
@@ -57,6 +60,7 @@ void ModbusTcpOutService::incomingConnection(qintptr handle)
         socket->deleteLater();
         return;
     }
+    socket->lastLines = lastLines;
 
     connect(this, &ModbusTcpOutService::write2socket, socket, &ModbusTcpOutSocket::write2socket);/* [=](QByteArray lines){
         socket->write(lines); it makes big problems, after sockets connect and disconnect
@@ -64,5 +68,7 @@ void ModbusTcpOutService::incomingConnection(qintptr handle)
 
     connect(this, &ModbusTcpOutService::killAll, socket, &ModbusTcpOutSocket::close);
     connect(socket, &QTcpSocket::disconnected, socket, &ModbusTcpOutSocket::deleteLater);
+
+
 
 }

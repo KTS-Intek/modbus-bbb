@@ -184,7 +184,7 @@ private:
             modbusDecoderMode(MODBUS_MODE_RTU),
             isModbusMasterSide(false),
             busyCounter(0),
-            processingmsec(7777),
+            processingmsec(5555),//fucking com'x doesn't accept big timeout
             processintTimeoutCounter(0),
             messageCounter(0),
             lastStartRegister(0), lastRegisterCount(0)

@@ -2,6 +2,8 @@
 #define MODBUSTCPOUTSOCKET_H
 
 #include <QTcpSocket>
+#include <QStringList>
+#include <QTimer>
 
 class ModbusTcpOutSocket : public QTcpSocket
 {
@@ -9,11 +11,14 @@ class ModbusTcpOutSocket : public QTcpSocket
 public:
     explicit ModbusTcpOutSocket(QObject *parent = nullptr);
 
+    QStringList lastLines;
+    bool lockWriting;
 signals:
 
 public slots:
     void write2socket(QByteArray lines);
 
+    void unlockWriting();
 
 };
 
