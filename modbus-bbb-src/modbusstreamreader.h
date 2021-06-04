@@ -35,7 +35,7 @@ signals:
 
     void sendCommand2dataHolder(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
 
-    void onSerialPortName(QString serialportname);
+    void onSerialPortName(QString serialportname, bool isParityNone);
 
 
 

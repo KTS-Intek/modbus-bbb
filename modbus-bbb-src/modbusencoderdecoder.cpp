@@ -94,7 +94,7 @@ bool ModbusEncoderDecoder::isMessageReadingFinished(const QByteArray &readArr, M
 {
     bool r = false;
     messageparams = ModbusDecodedParams();
-    if(readArr.isEmpty() || readArr.length() < 3)
+    if(readArr.isEmpty() || readArr.length() < 6)
         return false;
 
     switch (myparams.modbusDecoderMode) {
@@ -563,8 +563,10 @@ void ModbusEncoderDecoder::onMeterListChanged()
 void ModbusEncoderDecoder::onMeterListExtChanged()
 {
     QString serialportname;
-    myparams.listDevAddr2meterNI = ModbusElectricityMeterHelper::getMapDevAddr2niExt(serialportname);
-    emit onSerialPortName(serialportname);
+    bool isParityNone;
+
+    myparams.listDevAddr2meterNI = ModbusElectricityMeterHelper::getMapDevAddr2niExt(serialportname, isParityNone);
+    emit onSerialPortName(serialportname, isParityNone);
 }
 
 //--------------------------------------------------------------------

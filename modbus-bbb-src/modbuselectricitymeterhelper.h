@@ -36,9 +36,9 @@ public:
 
     static QHash<quint8,QString> getMapDevAddr2ni();
 
-    static QHash<quint8,QString> getMapDevAddr2niExt(QString &serilaPortName);
+    static QHash<quint8,QString> getMapDevAddr2niExt(QString &serilaPortName, bool &isParityNone);
 
-    static QString getSerialPortName();
+    static QString getSerialPortName(bool &isParityNone);
 
     static QStringList getDevNIList();//it is a temporary solution, because I don't want to change protcol
 

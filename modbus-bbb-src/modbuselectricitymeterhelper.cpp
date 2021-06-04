@@ -58,21 +58,23 @@ QList<quint8> ModbusElectricityMeterHelper::getAcceptableEMeterNis()
 QHash<quint8, QString> ModbusElectricityMeterHelper::getMapDevAddr2ni()
 {
     QString serialPortName;
-   return getMapDevAddr2niExt(serialPortName);
+    bool isParityNone;
+   return getMapDevAddr2niExt(serialPortName, isParityNone);
 
 }
 
 //-------------------------------------------------------------------------------------------
 
 
-QHash<quint8, QString> ModbusElectricityMeterHelper::getMapDevAddr2niExt(QString &serilaPortName)
+QHash<quint8, QString> ModbusElectricityMeterHelper::getMapDevAddr2niExt(QString &serilaPortName, bool &isParityNone)
 {
     QHash<quint8, QString> h;
     const QStringList l = getDevNIList();
-
+    isParityNone = false;
 
     /*
      * rs485=<port name>
+//rsP485=None
      * <devaddr>=<NI>
      */
 
@@ -93,8 +95,13 @@ QHash<quint8, QString> ModbusElectricityMeterHelper::getMapDevAddr2niExt(QString
             if(ok && add > 0 && add <= 248){//I need only acceptable modbus addresses
                 h.insert(quint8(add), value);
             }else{
-                if(lines.at(0) == "rs485" )
+                if(lines.at(0) == "rs485" ){
                     serilaPortName = value;
+                }else{
+                    if(lines.at(0) == "rsP485"){
+                        isParityNone = (value == "None");
+                    }
+                }
             }
 
         }
@@ -110,10 +117,11 @@ QHash<quint8, QString> ModbusElectricityMeterHelper::getMapDevAddr2niExt(QString
 
 //-------------------------------------------------------------------------------------------
 
-QString ModbusElectricityMeterHelper::getSerialPortName()
+QString ModbusElectricityMeterHelper::getSerialPortName(bool &isParityNone)
 {
     QString serialPortName;
-    getMapDevAddr2niExt(serialPortName);
+
+    getMapDevAddr2niExt(serialPortName, isParityNone);
     return serialPortName;
 }
 

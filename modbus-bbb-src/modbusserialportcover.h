@@ -67,7 +67,7 @@ public slots:
     void currentOperation(QString messageStrr);
 
 
-    void onSerialPortName(QString serialportname);
+    void onSerialPortName(QString serialportname, bool isParityNone);
 
 private:
     struct MySerialCoverState
@@ -77,6 +77,7 @@ private:
 
         QString portName;
         qint32 baudRate;
+        bool isParityNone;
 
 
         bool verboseMode;

@@ -63,7 +63,7 @@ signals:
 
     void startTmrDataHolderProcessing(int msec);
 
-    void onSerialPortName(QString serialportname);
+    void onSerialPortName(QString serialportname, bool isParityNone);
 
     void append2textLog(QString message);
 

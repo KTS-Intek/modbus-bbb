@@ -73,11 +73,13 @@ void ModbusSerialPortCover::reconnect2serialPort()
 
     //const bool &workWithoutAPI, const QString &portName, const qint32 &baudRate, const QStringList &uarts, const qint8 &databits, const qint8 &stopbits, const qint8 &parity, const qint8 &flowcontrol)
 
+    //it has parity correction
     if(streamr->openSerialPort(true, mystate.portName, mystate.baudRate, mystate.portName.split(" "),
-                               8, 1, 1, 0)){
+                               8, 1, mystate.isParityNone ? 0 : 1, QSerialPort::NoFlowControl)){
+        //const qint8 &databits, const qint8 &stopbits, const qint8 &parity, const qint8 &flowcontrol
         qDebug() << "ModbusSerialPortCover port is opened " << mystate.portName;
 
-        emit append2log(QString("%1 is opened").arg(mystate.portName));
+        emit append2log(QString("%1 is opened, parity=%2,%3").arg(mystate.portName).arg(int(mystate.isParityNone)).arg(int(streamr->serialPort->parity())));
         return;
     }
 
@@ -112,15 +114,15 @@ void ModbusSerialPortCover::currentOperation(QString messageStrr)
 
 }
 
-void ModbusSerialPortCover::onSerialPortName(QString serialportname)
+void ModbusSerialPortCover::onSerialPortName(QString serialportname, bool isParityNone)
 {
-    qDebug() << "ModbusSerialPortCover serialportname " << serialportname;
-    emit append2log(QString("%1, %2, ModbusSerialPortCover::onSerialPortName").arg(mystate.portName).arg(serialportname));
+    qDebug() << "ModbusSerialPortCover serialportname " << serialportname << isParityNone;
+    emit append2log(QString("%1, %2, None=%3 ModbusSerialPortCover::onSerialPortName").arg(mystate.portName).arg(serialportname).arg(int(isParityNone)));
 
     if(serialportname != mystate.portName){
-
         mystate.serialOpentCounter = 0;
         mystate.portName = serialportname;
+        mystate.isParityNone = isParityNone;
         reloadSettings();
     }
 }
