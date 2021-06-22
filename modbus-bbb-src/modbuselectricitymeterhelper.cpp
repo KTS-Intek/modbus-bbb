@@ -34,18 +34,10 @@ QList<quint8> ModbusElectricityMeterHelper::getAcceptableEMeterNis()
         for(quint32 i = 0; !stream.atEnd() && i < MAX_METER_COUNT; i++){
             QVariantHash hash;
             stream >> hash;
-            if(hash.isEmpty())
-                continue;
 
-            if((hash.value("on",false).toBool() && hash.value("on").toString() != "-")|| hash.value("on").toString() == "+"){
-                bool ok;
-                const quint64 add = hash.value("NI").toULongLong(&ok);
-                if(ok && add > 0 && add <= 248)//I need only acceptable modbus addresses
-                    devadds.append(quint8(add));
-
-
-            }
-
+            const quint8 add = meterAddressFromHash(hash);
+            if(add > 0)
+                devadds.append(quint8(add));
 
         }
         file.close();
@@ -139,44 +131,6 @@ QStringList ModbusElectricityMeterHelper::getDevNIList()
 
 //-------------------------------------------------------------------------------------------
 
-MODBUSDIVIDED_INT32 ModbusElectricityMeterHelper::getDividedInt32(const qint32 &value)
-{
-    MODBUSDIVIDED_INT32 r;
-    r.lowword = value & 0xFFFF;
-    r.highword = (value >> 16);
-    return r;
-}
-
-//-------------------------------------------------------------------------------------------
-
-MODBUSDIVIDED_UINT32 ModbusElectricityMeterHelper::getDividedUInt32(const quint32 &value)
-{
-    MODBUSDIVIDED_UINT32 r;
-    r.lowword = value & 0xFFFF;
-    r.highword = (value >> 16);
-    return r;
-}
-
-//-------------------------------------------------------------------------------------------
-
-void ModbusElectricityMeterHelper::addDividedInt322thelist(ModbusAnswerList &list, const qint32 &value)
-{//big endian
-    const MODBUSDIVIDED_INT32 r = getDividedInt32(value);
-    list.append(r.highword);
-    list.append(r.lowword);
-
-
-}
-
-//-------------------------------------------------------------------------------------------
-
-void ModbusElectricityMeterHelper::addDividedUInt322thelist(ModbusAnswerList &list, const quint32 &value)
-{
-    const MODBUSDIVIDED_UINT32 r = getDividedUInt32(value);
-    list.append(r.highword);
-    list.append(r.lowword);
-
-}
 
 //-------------------------------------------------------------------------------------------
 
@@ -355,9 +309,6 @@ ModbusAnswerList ModbusElectricityMeterHelper::getTotalEnergyAnswer(const QVaria
     const QList<quint32> enrgs = getEnergyValues(hdata, energytable, tablenames);
 
     ModbusAnswerList l;
-
-
-
     for(int i = 0, imax = enrgs.size(); i < imax; i++){
         addDividedUInt322thelist(l, enrgs.at(i));
     }

@@ -14,12 +14,31 @@
 #define MYDECODER_TOTALENERGY_REGISTER_FIRST    40201
 
 
+
+#define MYDECODER_TOTALWATER_REGISTER_FIRST     41201
+
+#define MYDECODER_TOTALGAS_REGISTER_FIRST       42201
+
+#define MYDECODER_TOTALPULSE_REGISTER_FIRST     43201
+
+
+
 #define MYDECODER_READF_FIRST_VREGISTER MYDECODER_VOLTAGE_REGISTER_FIRST
 #define MYDECODER_READF_LAST_VREGISTER  40039
 
 #define MYDECODER_READF_FIRST_EREGISTER MYDECODER_TOTALENERGY_REGISTER_FIRST
 #define MYDECODER_READF_LAST_EREGISTER  40240
 
+
+
+#define MYDECODER_READF_FIRST_WREGISTER MYDECODER_TOTALWATER_REGISTER_FIRST
+#define MYDECODER_READF_LAST_WREGISTER  41212
+
+#define MYDECODER_READF_FIRST_GREGISTER MYDECODER_TOTALGAS_REGISTER_FIRST
+#define MYDECODER_READF_LAST_GREGISTER  42202
+
+#define MYDECODER_READF_FIRST_PREGISTER MYDECODER_TOTALPULSE_REGISTER_FIRST
+#define MYDECODER_READF_LAST_PREGISTER  43208
 
 //--------------------------------------------------------------------
 
@@ -552,7 +571,11 @@ void ModbusEncoderDecoder::reloadAllSettings()
 void ModbusEncoderDecoder::onMeterListChanged()
 {
     //it calls when the emeter list changed
-    myparams.listMeterNIs = ModbusElectricityMeterHelper::getAcceptableEMeterNis();
+    myparams.listMeterNIs.clear();
+    addUniqueNIs(myparams.listMeterNIs, ModbusElectricityMeterHelper::getAcceptableEMeterNis());
+    addUniqueNIs(myparams.listMeterNIs, ModbusWaterMeterHelper::getAcceptableWMeterNis());
+    addUniqueNIs(myparams.listMeterNIs, ModbusGasMeterHelper::getAcceptableGMeterNis());
+    addUniqueNIs(myparams.listMeterNIs, ModbusPulseMeterHelper::getAcceptablePMeterNis());
 
 
     //NI to addres
@@ -567,18 +590,31 @@ void ModbusEncoderDecoder::onMeterListChanged()
 
 void ModbusEncoderDecoder::onMeterListExtChanged()
 {
-    QString serialportname;
-    bool isParityNone;
+
 
     myparams.listDevAddr2meterNI = ModbusElectricityMeterHelper::getMapDevAddr2niExt(serialportname, isParityNone);
-    emit onSerialPortName(serialportname, isParityNone);
+}
+
+//--------------------------------------------------------------------
+
+void ModbusEncoderDecoder::addUniqueNIs(QList<quint8> &outl, const QList<quint8> &inl)
+{
+    for(int i = 0, imax = inl.size(); i < imax; i++){
+        if(outl.contains(inl.at(i)))
+            continue;
+        outl.append(inl.at(i));
+    }
 }
 
 //--------------------------------------------------------------------
 
 bool ModbusEncoderDecoder::isStartRegisterGood(const quint16 &startRegister)
 {
-    return (isVoltageRegister(startRegister) || isEnergyRegister(startRegister));
+    return (isVoltageRegister(startRegister) ||
+            isEnergyRegister(startRegister) ||
+            isWaterTotalRegister(startRegister) ||
+            isGasTotalRegister(startRegister) ||
+            isPulseTotalRegister(startRegister));
 }
 
 //--------------------------------------------------------------------
@@ -593,6 +629,30 @@ bool ModbusEncoderDecoder::isVoltageRegister(const quint16 &startRegister)
 bool ModbusEncoderDecoder::isEnergyRegister(const quint16 &startRegister)
 {
     return (startRegister >= MYDECODER_TOTALENERGY_REGISTER_FIRST && startRegister <=  MYDECODER_READF_LAST_EREGISTER);
+}
+
+//--------------------------------------------------------------------
+
+bool ModbusEncoderDecoder::isWaterTotalRegister(const quint16 &startRegister)
+{
+    return (startRegister >= MYDECODER_TOTALWATER_REGISTER_FIRST && startRegister <=  MYDECODER_READF_LAST_WREGISTER);
+
+}
+
+//--------------------------------------------------------------------
+
+bool ModbusEncoderDecoder::isGasTotalRegister(const quint16 &startRegister)
+{
+    return (startRegister >= MYDECODER_TOTALGAS_REGISTER_FIRST && startRegister <=  MYDECODER_READF_LAST_GREGISTER);
+
+}
+
+//--------------------------------------------------------------------
+
+bool ModbusEncoderDecoder::isPulseTotalRegister(const quint16 &startRegister)
+{
+    return (startRegister >= MYDECODER_TOTALPULSE_REGISTER_FIRST && startRegister <=  MYDECODER_READF_LAST_PREGISTER);
+
 }
 
 //--------------------------------------------------------------------
@@ -626,6 +686,17 @@ void ModbusEncoderDecoder::findData4theseRegister(const quint16 &startRegister, 
 
     if(isEnergyRegister(startRegister)){
         myparams.lastPollCodes2receive.append(POLL_CODE_READ_TOTAL);
+    }
+
+    if(isWaterTotalRegister(startRegister)){
+        myparams.lastPollCodes2receive.append(POLL_CODE_WTR_TOTAL);
+    }
+
+    if(isGasTotalRegister(startRegister)){
+        myparams.lastPollCodes2receive.append(POLL_CODE_GAS_TOTAL);
+    }
+    if(isPulseTotalRegister(startRegister)){
+        myparams.lastPollCodes2receive.append(POLL_CODE_PLSS_TOTAL);
     }
 
     if(myparams.lastPollCodes2receive.isEmpty()){
@@ -871,8 +942,13 @@ void ModbusEncoderDecoder::fillTheAnswerHash(const quint8 &pollCode, QMap<quint1
     quint16 startRegister = 0;
 
     switch(pollCode){
-    case POLL_CODE_READ_VOLTAGE : l = getVoltageAnswer(h)    ; startRegister = MYDECODER_READF_FIRST_VREGISTER; break;
-    case POLL_CODE_READ_TOTAL   : l = getTotalEnergyAnswer(h); startRegister = MYDECODER_READF_FIRST_EREGISTER; break;
+    case POLL_CODE_READ_VOLTAGE : l = getVoltageAnswer(h)       ; startRegister = MYDECODER_READF_FIRST_VREGISTER; break;
+    case POLL_CODE_READ_TOTAL   : l = getTotalEnergyAnswer(h)   ; startRegister = MYDECODER_READF_FIRST_EREGISTER; break;
+    case POLL_CODE_WTR_TOTAL    : l = getTotalWaterAnswer(h)    ; startRegister = MYDECODER_READF_FIRST_WREGISTER; break;
+    case POLL_CODE_GAS_TOTAL    : l = getTotalGasAnswer(h)      ; startRegister = MYDECODER_READF_FIRST_GREGISTER; break;
+    case POLL_CODE_PLSS_TOTAL   : l = getTotalPulsesAnswer(h)   ; startRegister = MYDECODER_READF_FIRST_PREGISTER; break;
+
+
     }
 
 
@@ -916,6 +992,30 @@ ModbusAnswerList ModbusEncoderDecoder::getVoltageAnswer(const QVariantHash &h)
 ModbusAnswerList ModbusEncoderDecoder::getTotalEnergyAnswer(const QVariantHash &h)
 {
     return ModbusElectricityMeterHelper::getTotalEnergyAnswer(h.value("data").toHash(), verboseMode);
+}
+
+//--------------------------------------------------------------------
+
+ModbusAnswerList ModbusEncoderDecoder::getTotalWaterAnswer(const QVariantHash &h)
+{
+    return ModbusWaterMeterHelper::getTotalWaterAnswer(h.value("data").toHash(), verboseMode);
+
+}
+
+//--------------------------------------------------------------------
+
+ModbusAnswerList ModbusEncoderDecoder::getTotalGasAnswer(const QVariantHash &h)
+{
+    return ModbusGasMeterHelper::getTotalGasAnswer(h.value("data").toHash(), verboseMode);
+
+}
+
+//--------------------------------------------------------------------
+
+ModbusAnswerList ModbusEncoderDecoder::getTotalPulsesAnswer(const QVariantHash &h)
+{
+    return ModbusPulseMeterHelper::getTotalPulseAnswer(h.value("data").toHash(), verboseMode);
+
 }
 
 //--------------------------------------------------------------------

@@ -7,6 +7,9 @@
 
 
 #include "modbuselectricitymeterhelper.h"
+#include "modbuswatermeterhelper.h"
+#include "modbusgasmeterhelper.h"
+#include "modbuspulsemeterhelper.h"
 
 #include <QtCore>
 
@@ -63,7 +66,6 @@ signals:
 
     void startTmrDataHolderProcessing(int msec);
 
-    void onSerialPortName(QString serialportname, bool isParityNone);
 
     void append2textLog(QString message);
 
@@ -101,12 +103,20 @@ public slots:
 
 private:
 
+    void addUniqueNIs(QList<quint8> &outl, const QList<quint8> &inl);
+
     bool isStartRegisterGood(const quint16 &startRegister);
 
     bool isVoltageRegister(const quint16 &startRegister);
 
     bool isEnergyRegister(const quint16 &startRegister);
 
+
+    bool isWaterTotalRegister(const quint16 &startRegister);
+
+    bool isGasTotalRegister(const quint16 &startRegister);
+
+    bool isPulseTotalRegister(const quint16 &startRegister);
 
 
     void findData4theseRegister(const quint16 &startRegister, const quint16 &count);
@@ -135,6 +145,9 @@ private:
     ModbusAnswerList getVoltageAnswer(const QVariantHash &h);
     ModbusAnswerList getTotalEnergyAnswer(const QVariantHash &h);
 
+    ModbusAnswerList getTotalWaterAnswer(const QVariantHash &h);
+    ModbusAnswerList getTotalGasAnswer(const QVariantHash &h);
+    ModbusAnswerList getTotalPulsesAnswer(const QVariantHash &h);
 
 
     struct MyDecoderParams

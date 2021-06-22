@@ -28,7 +28,9 @@ public slots:
 
 
 
+
     void appendTextLog(QString lines);
+    void appendTextLogWithDt(QString dtlines);
 
     void killAllAndStop();
 

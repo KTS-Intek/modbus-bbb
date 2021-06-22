@@ -38,10 +38,18 @@ void ModbusTcpOutService::dataReadWriteReal(QByteArray arr, QString ifaceName, b
 
 void ModbusTcpOutService::appendTextLog(QString lines)
 {
-    lastLines.append(lines);
+
+    appendTextLogWithDt(QString("%1 %2\n").arg(QDateTime::currentDateTime().toString("yyyy/MM/dd hh:mm:ss.zzz t")).arg(lines));
+
+
+}
+
+void ModbusTcpOutService::appendTextLogWithDt(QString dtlines)
+{
+    lastLines.append(dtlines);
     if(lastLines.size() > 250)
         lastLines = lastLines.mid(50);
-    emit write2socket(QString("%1 %2\n").arg(QDateTime::currentDateTime().toString("yyyy/MM/dd hh:mm:ss.zzz t")).arg(lines).toUtf8());
+    emit write2socket(dtlines.toUtf8());
 }
 
 void ModbusTcpOutService::killAllAndStop()

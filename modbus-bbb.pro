@@ -72,13 +72,17 @@ SOURCES += \
         modbus-bbb-src/modbusdataholderclient.cpp \
         modbus-bbb-src/modbuselectricitymeterhelper.cpp \
         modbus-bbb-src/modbusencoderdecoder.cpp \
+        modbus-bbb-src/modbusgasmeterhelper.cpp \
         modbus-bbb-src/modbusmatildalsclient.cpp \
+        modbus-bbb-src/modbusmeterhelper.cpp \
+        modbus-bbb-src/modbuspulsemeterhelper.cpp \
         modbus-bbb-src/modbusresourcemanager.cpp \
         modbus-bbb-src/modbusserialportcover.cpp \
         modbus-bbb-src/modbusstreamreader.cpp \
         modbus-bbb-src/modbustcpoutservice.cpp \
         modbus-bbb-src/modbustcpoutsocket.cpp \
-        modbus-bbb-src/modbustcpserver.cpp
+        modbus-bbb-src/modbustcpserver.cpp \
+        modbus-bbb-src/modbuswatermeterhelper.cpp
 
 
 
@@ -88,10 +92,14 @@ HEADERS += \
     modbus-bbb-src/modbuselectricitymeterhelper.h \
     modbus-bbb-src/modbusencoderdecoder.h \
     modbus-bbb-src/modbusencoderdecodertypes.h \
+    modbus-bbb-src/modbusgasmeterhelper.h \
     modbus-bbb-src/modbusmatildalsclient.h \
+    modbus-bbb-src/modbusmeterhelper.h \
+    modbus-bbb-src/modbuspulsemeterhelper.h \
     modbus-bbb-src/modbusresourcemanager.h \
     modbus-bbb-src/modbusserialportcover.h \
     modbus-bbb-src/modbusstreamreader.h \
     modbus-bbb-src/modbustcpoutservice.h \
     modbus-bbb-src/modbustcpoutsocket.h \
-    modbus-bbb-src/modbustcpserver.h
+    modbus-bbb-src/modbustcpserver.h \
+    modbus-bbb-src/modbuswatermeterhelper.h

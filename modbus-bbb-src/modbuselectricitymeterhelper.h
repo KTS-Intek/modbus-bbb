@@ -2,31 +2,10 @@
 #define MODBUSELECTRICITYMETERHELPER_H
 
 
-#include <QVariantHash>
-#include "modbusencoderdecodertypes.h"
-#include "dataholdertypes.h"
-#include "modbustypes.h"
+#include "modbusmeterhelper.h"
 
 
-struct MODBUSDIVIDED_INT32
-{
-    quint16 highword;
-    quint16 lowword;
-    MODBUSDIVIDED_INT32() : highword(0), lowword(0) {}
-    MODBUSDIVIDED_INT32(const quint16 &highword, const quint16 &lowword) : highword(highword), lowword(lowword) {}
-};
-
-
-
-struct MODBUSDIVIDED_UINT32
-{
-    quint16 highword;
-    quint16 lowword;
-    MODBUSDIVIDED_UINT32() : highword(0), lowword(0) {}
-    MODBUSDIVIDED_UINT32(const quint16 &highword, const quint16 &lowword) : highword(highword), lowword(lowword) {}
-};
-
-class ModbusElectricityMeterHelper
+class ModbusElectricityMeterHelper : public ModbusMeterHelper
 {
 
 public:
@@ -43,11 +22,7 @@ public:
     static QStringList getDevNIList();//it is a temporary solution, because I don't want to change protcol
 
 
-    static MODBUSDIVIDED_INT32 getDividedInt32(const qint32 &value);
-    static MODBUSDIVIDED_UINT32 getDividedUInt32(const quint32 &value);
 
-    static void addDividedInt322thelist(ModbusAnswerList &list, const qint32 &value);
-    static void addDividedUInt322thelist(ModbusAnswerList &list, const quint32 &value);
 
 
     static ModbusAnswerList getVoltageAnswer(const QVariantHash &hdata, const bool &verboseMode);
