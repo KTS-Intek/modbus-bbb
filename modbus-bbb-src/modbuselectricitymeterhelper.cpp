@@ -5,8 +5,6 @@
 #include <QDateTime>
 
 
-///[!] matilda-bbb-settings
-#include "src/matilda/settloader4matilda.h"
 
 
 ///[!] MatildaIO
@@ -20,9 +18,9 @@
 
 //-------------------------------------------------------------------------------------------
 
-QList<quint8> ModbusElectricityMeterHelper::getAcceptableEMeterNis()
+ModbusVirtualDevices ModbusElectricityMeterHelper::getAcceptableEMeterNis()
 {
-    QList<quint8> devadds;
+    ModbusVirtualDevices devadds;
 
 
     QFile file(PathsResolver::path2electricityMetersList());
@@ -35,9 +33,10 @@ QList<quint8> ModbusElectricityMeterHelper::getAcceptableEMeterNis()
             QVariantHash hash;
             stream >> hash;
 
-            const quint8 add = meterAddressFromHash(hash);
+            OneModbusVirtualDevice onedev;
+            const quint8 add = meterAddressFromHash(hash, onedev);
             if(add > 0)
-                devadds.append(quint8(add));
+                devadds.insert(add, onedev);
 
         }
         file.close();
@@ -45,88 +44,6 @@ QList<quint8> ModbusElectricityMeterHelper::getAcceptableEMeterNis()
     return devadds;
 }
 
-//-------------------------------------------------------------------------------------------
-
-QHash<quint8, QString> ModbusElectricityMeterHelper::getMapDevAddr2ni()
-{
-    QString serialPortName;
-    bool isParityNone;
-   return getMapDevAddr2niExt(serialPortName, isParityNone);
-
-}
-
-//-------------------------------------------------------------------------------------------
-
-
-QHash<quint8, QString> ModbusElectricityMeterHelper::getMapDevAddr2niExt(QString &serilaPortName, bool &isParityNone)
-{
-    QHash<quint8, QString> h;
-    const QStringList l = getDevNIList();
-    isParityNone = false;
-
-    /*
-     * rs485=<port name>
-//rsP485=None
-     * <devaddr>=<NI>
-     */
-
-    for(int i = 0, imax = l.size(); i < imax; i++){
-        const QStringList lines = l.at(i).split("=", QString::SkipEmptyParts);
-
-
-        if(lines.size() >= 2){
-
-            bool ok;
-
-            const quint64 add = lines.at(0).toULongLong(&ok);
-            const QString value = lines.at(1).simplified().trimmed();
-
-            if(value.isEmpty())
-                continue;
-
-            if(ok && add > 0 && add <= 248){//I need only acceptable modbus addresses
-                h.insert(quint8(add), value);
-            }else{
-                if(lines.at(0) == "rs485" ){
-                    serilaPortName = value;
-                }else{
-                    if(lines.at(0) == "rsP485"){
-                        isParityNone = (value == "None");
-                    }
-                }
-            }
-
-        }
-
-
-
-
-    }
-    return h;
-
-}
-
-
-//-------------------------------------------------------------------------------------------
-
-QString ModbusElectricityMeterHelper::getSerialPortName(bool &isParityNone)
-{
-    QString serialPortName;
-
-    getMapDevAddr2niExt(serialPortName, isParityNone);
-    return serialPortName;
-}
-
-//-------------------------------------------------------------------------------------------
-
-QStringList ModbusElectricityMeterHelper::getDevNIList()
-{
-    const QString s = SettLoader4matilda().loadOneSett(SETT_ABOUT_MEMO).toString();
-
-
-
-    return s.split("\n", QString::SkipEmptyParts);
-}
 
 
 //-------------------------------------------------------------------------------------------

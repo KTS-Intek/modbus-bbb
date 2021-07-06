@@ -1,6 +1,10 @@
 #include "modbusserialportcover.h"
 
 
+///[!] type-converter
+#include "src/shared/ifacehelper.h"
+
+
 
 ModbusSerialPortCover::ModbusSerialPortCover(const bool &verboseMode, QObject *parent) : QObject(parent)
 {
@@ -55,7 +59,12 @@ void ModbusSerialPortCover::onThreadStarted()
     connect(this, &ModbusSerialPortCover::onConfigChanged, streamr, &ModbusStreamReader::onConfigChanged);
 
 
-    connect(streamr, &ModbusStreamReader::dataReadWriteReal, this, &ModbusSerialPortCover::dataReadWriteReal);
+
+    IfaceHelper *ifceHlpr = new IfaceHelper(true, this);
+    connect(ifceHlpr, &IfaceHelper::ifaceLogStr, this, &ModbusSerialPortCover::ifaceLogStr);
+    connect(streamr, &ModbusStreamReader::dataReadWriteReal, ifceHlpr, &IfaceHelper::showHexDump);
+
+
 
     QTimer::singleShot(111, streamr, SLOT(createObjects()));// this, SLOT(reloadSettings()));
 
@@ -120,7 +129,7 @@ void ModbusSerialPortCover::onSerialPortName(QString serialportname, bool isPari
     emit append2log(QString("%1, %2, None=%3 ModbusSerialPortCover::onSerialPortName").arg(mystate.portName).arg(serialportname).arg(int(isParityNone)));
 
     if(serialportname != mystate.portName){
-        mystate.serialOpentCounter = 0;
+        mystate.serialOpentCounter = ;
         mystate.portName = serialportname;
         mystate.isParityNone = isParityNone;
         reloadSettings();

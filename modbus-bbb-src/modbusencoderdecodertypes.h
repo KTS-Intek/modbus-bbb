@@ -41,5 +41,16 @@ struct OnePhaseModbusAnswerFormat
 
 
 
+struct OneModbusVirtualDevice
+{
+    QString ni;//network id
+    QString sn;//additional id, if empty ignore,
+    QString memo;//keep it here also
+    OneModbusVirtualDevice() {}
+};
+
+typedef QMap<quint8, OneModbusVirtualDevice> ModbusVirtualDevices;
+
+
 
 #endif // MODBUSENCODERDECODERTYPES_H

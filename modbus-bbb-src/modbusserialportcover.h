@@ -22,7 +22,7 @@ signals:
 
 
 
-    void dataReadWriteReal(QByteArray arr, QString ifaceName, bool isRead);
+    void ifaceLogStr(QString line); //<iface name> <time> <hex><data>  line 16 bytes
 
 
 

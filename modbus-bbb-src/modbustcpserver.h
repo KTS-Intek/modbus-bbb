@@ -11,7 +11,9 @@ public:
 
 signals:
 
-    void dataReadWriteReal(QByteArray arr, QString ifaceName, bool isRead);
+
+    void ifaceLogStr(QString line); //<iface name> <time> <hex><data>  line 16 bytes
+
 
     //to the resource manager
     void append2log(QString message);
@@ -19,9 +21,9 @@ signals:
 
 
     //from streamreader
-    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
+    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString sn, QString messagetag, QString objecttag);
 
-    void sendCommand2dataHolder(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
+    void sendCommand2dataHolder(quint16 pollCode, QString ni, QString sn, QString messagetag, QString objecttag);
     //to streamreader
 
     //matilda local socket answer

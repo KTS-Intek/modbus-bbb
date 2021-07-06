@@ -1,5 +1,11 @@
 #include "modbusresourcemanager.h"
 
+
+///[!] sharedmemory
+#include "src/shared/sharedmemowriter.h"
+
+
+
 #include <QTimer>
 
 #include "modbusmatildalsclient.h"
@@ -30,7 +36,8 @@ void ModbusResourceManager::createObjectsLater()
 
 void ModbusResourceManager::createObjects()
 {
-    createTcpOutService();
+    connect(this, &ModbusResourceManager::append2log, this, &ModbusResourceManager::append2logSlot);
+    createSharedMemoryObjects();
 }
 
 //--------------------------------------------------------------------------------
@@ -53,29 +60,59 @@ void ModbusResourceManager::onLogingServiceIsReady()
 
 //--------------------------------------------------------------------------------
 
-void ModbusResourceManager::createTcpOutService()
+void ModbusResourceManager::append2logSlot(QString message)
 {
-    ModbusTcpOutService *server = new ModbusTcpOutService;
-    QThread *thread = new QThread;
-
-    thread->setObjectName("ModbusTcpOutService");
-    server->moveToThread(thread);
-
-    connect(thread, &QThread::started, server, &ModbusTcpOutService::initServer);
-    connect(server, SIGNAL(destroyed(QObject*)), thread, SLOT(quit()));
-    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
-
-    connect(this, &ModbusResourceManager::killAllAndDie, server, &ModbusTcpOutService::killAllAndStop);
-
-    connect(this, &ModbusResourceManager::append2log, server, &ModbusTcpOutService::appendTextLog);
-
-    connect(this, &ModbusResourceManager::dataReadWriteReal, server, &ModbusTcpOutService::dataReadWriteReal);
-
-    connect(thread, &QThread::started, this, &ModbusResourceManager::onLogingServiceIsReady);
-
-
-     thread->start();
+    emit appendLogDataLine("evnts", message, "\n", 500);
 }
+
+//--------------------------------------------------------------------------------
+
+void ModbusResourceManager::appendUart2logSlot(QString lines)
+{
+    emit appendLogDataLine("uart", lines, "\n", 500);
+}
+
+//--------------------------------------------------------------------------------
+
+void ModbusResourceManager::appendTcp2logSlot(QString lines)
+{
+    emit appendLogDataLine("tcp", lines, "\n", 500);
+
+}
+
+//--------------------------------------------------------------------------------
+
+void ModbusResourceManager::createSharedMemoryObjects()
+{
+    QThread *writerthred = new QThread;
+    writerthred->setObjectName("SharedMemoWriterMBBB");
+    SharedMemoWriter *writer = new SharedMemoWriter(SharedMemoHelper::defModbusBBBLosMemoName(), SharedMemoHelper::defModbusBBBLosSemaName(), "", 2222, 60000, verboseMode);
+
+    writer->mymaximums.write2ram = 120;
+    writer->mymaximums.write2file = 250;
+    writer->useMirrorLogs = true;
+
+    writer->moveToThread(writerthred);
+    connect(writer, SIGNAL(destroyed(QObject*)), writerthred, SLOT(quit()));
+    connect(writerthred, SIGNAL(finished()), writerthred, SLOT(deleteLater()));
+    connect(writerthred, SIGNAL(started()), writer, SLOT(initObjectLtr()));
+
+
+    connect(writerthred, &QThread::started, this, &ModbusResourceManager::onLogingServiceIsReady);
+
+
+//    writer->useMirrorLogs = true;
+
+    connect(this, &ModbusResourceManager::appendLogDataLine, writer, &SharedMemoWriter::appendLogDataLine);
+
+    connect(this, &ModbusResourceManager::killAllAndDie, writer, &SharedMemoWriter::flushAllNowAndDie);
+
+//    writer->initObject(true);
+//    writerthred->start();
+    QTimer::singleShot(1, writerthred, SLOT(start()));
+
+}
+
 
 //--------------------------------------------------------------------------------
 
@@ -110,9 +147,7 @@ void ModbusResourceManager::createTcpServer()
 
     connect(server, &ModbusTCPServer::append2log, this, &ModbusResourceManager::append2log);
 
-    connect(server, &ModbusTCPServer::dataReadWriteReal, this, &ModbusResourceManager::dataReadWriteReal);
-
-
+    connect(server, &ModbusTCPServer::ifaceLogStr, this, &ModbusResourceManager::appendTcp2logSlot);
     thread->start();
 
 }
@@ -149,7 +184,7 @@ void ModbusResourceManager::createSerialPortReader()
     connect(serialp, &ModbusSerialPortCover::append2log, this, &ModbusResourceManager::append2log);
     connect(serialp, &ModbusSerialPortCover::restartApp, this, &ModbusResourceManager::restartApp);
 
-    connect(serialp, &ModbusSerialPortCover::dataReadWriteReal, this, &ModbusResourceManager::dataReadWriteReal);
+    connect(serialp, &ModbusSerialPortCover::ifaceLogStr, this, &ModbusResourceManager::appendUart2logSlot);
 
     thread->start();
 

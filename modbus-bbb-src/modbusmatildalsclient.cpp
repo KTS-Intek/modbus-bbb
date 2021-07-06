@@ -42,6 +42,7 @@ void ModbusMatildaLSClient::decodeReadData(const QVariant &dataVar, const quint1
 
 void ModbusMatildaLSClient::sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag, QString objecttag)
 {
+    //ni of the emeter, wmeter, pmeter
 
     //    const QString params = modbusprocessor->generateQuickPollLine(readArr);
     //    if(params.isEmpty()){

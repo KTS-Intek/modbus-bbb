@@ -10,6 +10,7 @@
 #include "modbuswatermeterhelper.h"
 #include "modbusgasmeterhelper.h"
 #include "modbuspulsemeterhelper.h"
+#include "modbussettingsloader.h"
 
 #include <QtCore>
 
@@ -49,9 +50,9 @@ public:
     QString generateQuickPollLine(const QByteArray &readArr);
 
 signals:
-    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag);// don't forget to add a tag, quint16 messagetag);
+    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString sn, QString messagetag);// don't forget to add a tag, quint16 messagetag);
 
-    void sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString ni, QString messagetag);
+    void sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString ni, QString sn, QString messagetag);
 
 
     void onData2write(QByteArray writearr);
@@ -99,11 +100,9 @@ public slots:
 
     void reloadAllSettings();
     void onMeterListChanged();
-    void onMeterListExtChanged();
 
 private:
 
-    void addUniqueNIs(QList<quint8> &outl, const QList<quint8> &inl);
 
     bool isStartRegisterGood(const quint16 &startRegister);
 
@@ -158,8 +157,9 @@ private:
         quint8 modbusDecoderMode;//RTU or TCP
         bool isModbusMasterSide;//it must false here
 
-        QList<quint8> listMeterNIs;//only acceptable values
-        QHash<quint8,QString> listDevAddr2meterNI;
+        ModbusVirtualDevices myDevices;
+//        QList<quint8> listMeterNIs;//only acceptable values
+//        QHash<quint8,QString> listDevAddr2meterNI;
 
 
         ModbusDecodedParams lastmessageparams; //last message that is processed

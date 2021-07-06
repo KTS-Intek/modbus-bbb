@@ -31,11 +31,10 @@ public:
 
 signals:
 
-    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
+    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString sn, QString messagetag, QString objecttag);
 
-    void sendCommand2dataHolder(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
+    void sendCommand2dataHolder(quint16 pollCode, QString ni, QString sn, QString messagetag, QString objecttag);
 
-    void onSerialPortName(QString serialportname, bool isParityNone);
 
 
 
@@ -44,12 +43,12 @@ public slots:
 
 
     //from decoder
-    void sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString ni, QString messagetag);
+    void sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString ni, QString sn, QString messagetag);
 
 
 
     //send to matidla local socket
-    void onSendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag);
+    void onSendCommand2zbyrator(quint16 pollCode, QString ni, QString sn, QString messagetag);
 
 
 

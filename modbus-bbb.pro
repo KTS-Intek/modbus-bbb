@@ -65,6 +65,9 @@ include(../../../Matilda-units/matilda-base/MatildaIO/MatildaIO.pri)
 
 include(../../../Matilda-units/matilda-bbb/matilda-bbb-settings/matilda-bbb-settings.pri)
 
+include(../../../Matilda-units/ipc/sharedmemory/sharedmemory.pri)
+
+
 
 SOURCES += \
         main.cpp \
@@ -78,6 +81,7 @@ SOURCES += \
         modbus-bbb-src/modbuspulsemeterhelper.cpp \
         modbus-bbb-src/modbusresourcemanager.cpp \
         modbus-bbb-src/modbusserialportcover.cpp \
+        modbus-bbb-src/modbussettingsloader.cpp \
         modbus-bbb-src/modbusstreamreader.cpp \
         modbus-bbb-src/modbustcpoutservice.cpp \
         modbus-bbb-src/modbustcpoutsocket.cpp \
@@ -98,6 +102,7 @@ HEADERS += \
     modbus-bbb-src/modbuspulsemeterhelper.h \
     modbus-bbb-src/modbusresourcemanager.h \
     modbus-bbb-src/modbusserialportcover.h \
+    modbus-bbb-src/modbussettingsloader.h \
     modbus-bbb-src/modbusstreamreader.h \
     modbus-bbb-src/modbustcpoutservice.h \
     modbus-bbb-src/modbustcpoutsocket.h \

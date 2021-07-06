@@ -3,6 +3,7 @@
 
 
 #include "modbusmeterhelper.h"
+#include "modbusencoderdecodertypes.h"
 
 
 class ModbusElectricityMeterHelper : public ModbusMeterHelper
@@ -10,16 +11,7 @@ class ModbusElectricityMeterHelper : public ModbusMeterHelper
 
 public:
 
-    static QList<quint8> getAcceptableEMeterNis();
-
-
-    static QHash<quint8,QString> getMapDevAddr2ni();
-
-    static QHash<quint8,QString> getMapDevAddr2niExt(QString &serilaPortName, bool &isParityNone);
-
-    static QString getSerialPortName(bool &isParityNone);
-
-    static QStringList getDevNIList();//it is a temporary solution, because I don't want to change protcol
+    static ModbusVirtualDevices getAcceptableEMeterNis();
 
 
 

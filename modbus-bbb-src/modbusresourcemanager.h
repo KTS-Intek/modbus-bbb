@@ -20,17 +20,18 @@ signals:
 
     void append2log(QString message);
 
-    void dataReadWriteReal(QByteArray arr, QString ifaceName, bool isRead);
 
 
 
+    void appendLogDataLine(QString key, QString line, QString splitter, int maxLogSize); //to shared memory
 
+    void appendLogDataList(QString key, QStringList log, QString splitter, int maxLogSize); //I need it bcs I want to use new format of connecting signals/slots
 
 
     //from streamreader
-    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
+    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString sn, QString messagetag, QString objecttag);
 
-    void sendCommand2dataHolder(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
+    void sendCommand2dataHolder(quint16 pollCode, QString ni, QString sn, QString messagetag, QString objecttag);
     //to streamreader
 
     //matilda local socket answer
@@ -60,8 +61,17 @@ public slots:
 
 
 
+    void append2logSlot(QString message);
+
+    void appendUart2logSlot(QString lines);
+
+    void appendTcp2logSlot(QString lines);
+
 private:
-    void createTcpOutService();
+
+    void createSharedMemoryObjects();
+
+
 
 
     void createTcpServer();

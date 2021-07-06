@@ -1,5 +1,8 @@
 #include "modbustcpserver.h"
 
+///[!] type-converter
+#include "src/shared/ifacehelper.h"
+
 #include "modbusstreamreader.h"
 
 //----------------------------------------------------------------------------
@@ -129,7 +132,11 @@ void ModbusTCPServer::incomingConnection(qintptr handle)
 
     connect(this, &ModbusTCPServer::onConfigChanged, streamr, &ModbusStreamReader::onConfigChanged);
 
-    connect(streamr, &ModbusStreamReader::dataReadWriteReal, this, &ModbusTCPServer::dataReadWriteReal);
+
+
+    IfaceHelper *ifceHlpr = new IfaceHelper(true, this);
+    connect(ifceHlpr, &IfaceHelper::ifaceLogStr, this, &ModbusTCPServer::ifaceLogStr);
+    connect(streamr, &ModbusStreamReader::dataReadWriteReal, ifceHlpr, &IfaceHelper::showHexDump);
 
     if(streamr->socket->state() != QTcpSocket::ConnectedState){
         streamr->deleteLater();

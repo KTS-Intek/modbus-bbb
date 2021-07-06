@@ -9,13 +9,13 @@
 
 //-------------------------------------------------------------------------------------------
 
-QList<quint8> ModbusPulseMeterHelper::getAcceptablePMeterNis()
+void ModbusPulseMeterHelper::getAcceptablePMeterNis(ModbusVirtualDevices &vdevs)
 {
 
     QString errstr;
     const QVariantList l = CompressFileHelper::readCompressedVarListFromTheFile(PathsResolver::path2pulseMetersList(), errstr);
 
-    return getAcceptableMeterNis(l);
+    getAcceptableMeterNis(l, vdevs);
 
 
 }

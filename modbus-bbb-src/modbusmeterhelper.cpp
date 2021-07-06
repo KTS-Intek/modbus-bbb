@@ -72,25 +72,24 @@ QList<quint32> ModbusMeterHelper::getMeterValuesUIN32(const QStringList &listKey
 
 //-------------------------------------------------------------------------------------------
 
-QList<quint8> ModbusMeterHelper::getAcceptableMeterNis(const QVariantList &l)
+void ModbusMeterHelper::getAcceptableMeterNis(const QVariantList &l, ModbusVirtualDevices &vdevs)
 {
-    QList<quint8> devadds;
 
     for(int i = 0, imax = l.size(); i < imax; i++){
         const QVariantHash hash = l.at(i).toHash();
 
-
-        const quint8 add = meterAddressFromHash(hash);
+        OneModbusVirtualDevice onedev;
+        const quint8 add = meterAddressFromHash(hash, onedev);
         if(add > 0)
-            devadds.append(quint8(add));
+            vdevs.insert(add, onedev);
+
     }
 
-    return devadds;
 }
 
 //-------------------------------------------------------------------------------------------
 
-quint8 ModbusMeterHelper::meterAddressFromHash(const QVariantHash &hash)
+quint8 ModbusMeterHelper::meterAddressFromHash(const QVariantHash &hash, OneModbusVirtualDevice &onedev)
 {
     if(hash.isEmpty())
         return 0;
@@ -98,8 +97,11 @@ quint8 ModbusMeterHelper::meterAddressFromHash(const QVariantHash &hash)
     if((hash.value("on",false).toBool() && hash.value("on").toString() != "-")|| hash.value("on").toString() == "+"){
         bool ok;
         const quint64 add = hash.value("NI").toULongLong(&ok);
-        if(ok && add > 0 && add <= 248)//I need only acceptable modbus addresses
+        if(ok && add > 0 && add <= 248){//I need only acceptable modbus addresses
+            onedev.memo = hash.value("memo").toString();
+            onedev.ni = QString::number(add);
             return quint8(add); // devadds.append(quint8(add));
+        }
 
     }
     return 0;

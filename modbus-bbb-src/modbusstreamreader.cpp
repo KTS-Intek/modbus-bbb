@@ -48,17 +48,17 @@ void ModbusStreamReader::createObjects()
 
 //----------------------------------------------------------------------
 
-void ModbusStreamReader::sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString ni, QString messagetag)
+void ModbusStreamReader::sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString ni, QString sn, QString messagetag)
 {
-    emit sendCommand2dataHolder(pollCode, ni, messagetag, myparams.objecttag);
+    emit sendCommand2dataHolder(pollCode, ni, sn, messagetag, myparams.objecttag);
 }
 
 //----------------------------------------------------------------------
 
-void ModbusStreamReader::onSendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag)
+void ModbusStreamReader::onSendCommand2zbyrator(quint16 pollCode, QString ni, QString sn, QString messagetag)
 {
 
-    emit sendCommand2zbyrator(pollCode, ni, messagetag, myparams.objecttag);
+    emit sendCommand2zbyrator(pollCode, ni, sn,  messagetag, myparams.objecttag);
 }
 
 //----------------------------------------------------------------------

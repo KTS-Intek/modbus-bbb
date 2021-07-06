@@ -177,7 +177,7 @@ void ModbusEncoderDecoder::canProcessTheLine(const QByteArray &readArr)
     }
 
 
-    if(!myparams.listMeterNIs.contains(lastmessageparams.devaddress) && !myparams.listDevAddr2meterNI.contains(lastmessageparams.devaddress)){
+    if(!myparams.myDevices.contains(lastmessageparams.devaddress)){
         if(verboseMode)
             qDebug() << "canProcessTheLine is not my addr " << int(lastmessageparams.devaddress);
         return;//it is not my meter, this request is not to me
@@ -434,7 +434,9 @@ void ModbusEncoderDecoder::onTmrDataHolderProcessingTimeOut()
         //all commands to zbyrator were sent, so Data holder client must be checked
         //or some commands were sent
         //        const QString ni = QString::number(myparams.lastmessageparams.devaddress);
-        QString ni = myparams.listDevAddr2meterNI.value(myparams.lastmessageparams.devaddress, QString::number(myparams.lastmessageparams.devaddress));
+        QString ni = myparams.myDevices.value(myparams.lastmessageparams.devaddress).ni;//, QString::number(myparams.lastmessageparams.devaddress));
+        QString sn = myparams.myDevices.value(myparams.lastmessageparams.devaddress).sn; //if empty ignore, in other case use sn to find data
+
 
         for(int i = 0, imax = lk.size(); i < imax; i++){
             const QString messagetag = lk.at(i);
@@ -443,7 +445,7 @@ void ModbusEncoderDecoder::onTmrDataHolderProcessingTimeOut()
             if(myparams.dataFromDataHolder.contains(pollCode))
                 continue;//I have data
 
-            emit sendCommand2dataHolderWOObjectTag(pollCode, ni, messagetag);
+            emit sendCommand2dataHolderWOObjectTag(pollCode, ni, sn ,messagetag);
 
 
         }
@@ -562,7 +564,6 @@ void ModbusEncoderDecoder::onMatildaCommandReceived(QString messagetag, bool iso
 void ModbusEncoderDecoder::reloadAllSettings()
 {
     onMeterListChanged();
-    onMeterListExtChanged();
 
 }
 
@@ -571,12 +572,14 @@ void ModbusEncoderDecoder::reloadAllSettings()
 void ModbusEncoderDecoder::onMeterListChanged()
 {
     //it calls when the emeter list changed
-    myparams.listMeterNIs.clear();
-    addUniqueNIs(myparams.listMeterNIs, ModbusElectricityMeterHelper::getAcceptableEMeterNis());
-    addUniqueNIs(myparams.listMeterNIs, ModbusWaterMeterHelper::getAcceptableWMeterNis());
-    addUniqueNIs(myparams.listMeterNIs, ModbusGasMeterHelper::getAcceptableGMeterNis());
-    addUniqueNIs(myparams.listMeterNIs, ModbusPulseMeterHelper::getAcceptablePMeterNis());
+    myparams.myDevices = ModbusElectricityMeterHelper::getAcceptableEMeterNis();
 
+    ModbusWaterMeterHelper::getAcceptableWMeterNis(myparams.myDevices);
+//    ModbusGasMeterHelper::getAcceptableGMeterNis(myparams.myDevices);
+    ModbusPulseMeterHelper::getAcceptablePMeterNis(myparams.myDevices);
+
+
+    ModbusSettingsLoader::insertModbusForwardingTable(myparams.myDevices);//it must be the last to overwrite any existing address
 
     //NI to addres
 
@@ -584,26 +587,6 @@ void ModbusEncoderDecoder::onMeterListChanged()
 
 
 
-}
-
-//--------------------------------------------------------------------
-
-void ModbusEncoderDecoder::onMeterListExtChanged()
-{
-
-
-    myparams.listDevAddr2meterNI = ModbusElectricityMeterHelper::getMapDevAddr2niExt(serialportname, isParityNone);
-}
-
-//--------------------------------------------------------------------
-
-void ModbusEncoderDecoder::addUniqueNIs(QList<quint8> &outl, const QList<quint8> &inl)
-{
-    for(int i = 0, imax = inl.size(); i < imax; i++){
-        if(outl.contains(inl.at(i)))
-            continue;
-        outl.append(inl.at(i));
-    }
 }
 
 //--------------------------------------------------------------------
@@ -706,7 +689,8 @@ void ModbusEncoderDecoder::findData4theseRegister(const quint16 &startRegister, 
 
     myparams.isWaitingDataHolder = true;
     //    QString ni = QString::number(myparams.lastmessageparams.devaddress);
-    QString ni = myparams.listDevAddr2meterNI.value(myparams.lastmessageparams.devaddress, QString::number(myparams.lastmessageparams.devaddress));
+    QString ni = myparams.myDevices.value(myparams.lastmessageparams.devaddress).ni;//, QString::number(myparams.lastmessageparams.devaddress));
+    QString sn = myparams.myDevices.value(myparams.lastmessageparams.devaddress).sn; //if empty ignore, in other case use sn to find data
 
     //    bool hasCachedDataAcceptable = false;
 
@@ -720,9 +704,9 @@ void ModbusEncoderDecoder::findData4theseRegister(const quint16 &startRegister, 
         myparams.messageTags.insert(messagetag, pollCode);
 
         if(verboseMode)
-            qDebug() << "sendCommand2dataHolderWOObjectTag " << pollCode << ni << int(myparams.lastmessageparams.devaddress) << messagetag;
+            qDebug() << "sendCommand2dataHolderWOObjectTag " << pollCode << ni << sn << int(myparams.lastmessageparams.devaddress) << messagetag;
 
-        emit sendCommand2dataHolderWOObjectTag(pollCode, ni, messagetag);
+        emit sendCommand2dataHolderWOObjectTag(pollCode, ni, sn, messagetag);
 
         //add some time btwn requests
         //        QThread::msleep(111);
@@ -790,6 +774,8 @@ bool ModbusEncoderDecoder::isCachedDataAcceptable(const QVariantHash &lastHash, 
     const QVariantHash h = lastHash;
     const quint8 pollCode = h.value("pollCode").toUInt();
     const QString ni = h.value("NI").toString();
+    const QString sn = h.value("SN").toString();
+
     const QString nimapped = myparams.listDevAddr2meterNI.value(myparams.lastmessageparams.devaddress, QString::number(myparams.lastmessageparams.devaddress));
 
     if(!myparams.lastPollCodes2receive.contains(pollCode) || ni.isEmpty() || nimapped != ni){
@@ -972,12 +958,13 @@ void ModbusEncoderDecoder::startZbyratorPoll(const QString &messagetag)
 
     myparams.zbyratoRmessageTags.insert(messagetag, pollCode);
 
-    QString ni = myparams.listDevAddr2meterNI.value(myparams.lastmessageparams.devaddress, QString::number(myparams.lastmessageparams.devaddress));
+    QString ni = myparams.myDevices.value(myparams.lastmessageparams.devaddress).ni;//, QString::number(myparams.lastmessageparams.devaddress));
+    QString sn = myparams.myDevices.value(myparams.lastmessageparams.devaddress).sn; //if empty ignore, in other case use sn to find data
 
     if(verboseMode)
-        qDebug()  << "ModbusEncoderDecoder::startZbyratorPoll " << ni << int(pollCode) << QString::number(myparams.lastmessageparams.devaddress) << messagetag;
+        qDebug()  << "ModbusEncoderDecoder::startZbyratorPoll " << ni << sn << int(pollCode) << QString::number(myparams.lastmessageparams.devaddress) << messagetag;
 
-    emit sendCommand2zbyrator(pollCode, ni, messagetag);
+    emit sendCommand2zbyrator(pollCode, ni, sn, messagetag);
 }
 
 //--------------------------------------------------------------------

@@ -7,7 +7,7 @@
 class ModbusWaterMeterHelper : public ModbusMeterHelper
 {
 public:
-    static QList<quint8> getAcceptableWMeterNis();
+    static void getAcceptableWMeterNis(ModbusVirtualDevices &vdevs);
 
     static ModbusAnswerList getTotalWaterAnswer(const QVariantHash &hdata, const bool &verboseMode);
 
