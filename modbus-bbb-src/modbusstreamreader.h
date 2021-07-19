@@ -31,9 +31,9 @@ public:
 
 signals:
 
-    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString sn, QString messagetag, QString objecttag);
+    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
 
-    void sendCommand2dataHolder(quint16 pollCode, QString ni, QString sn, QString messagetag, QString objecttag);
+    void sendCommand2dataHolder(quint16 pollCode, QString devID, bool useSn4devID, QString messagetag, QString objecttag);
 
 
 
@@ -43,12 +43,12 @@ public slots:
 
 
     //from decoder
-    void sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString ni, QString sn, QString messagetag);
+    void sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString devID, bool useSn4devID, QString messagetag);
 
 
 
     //send to matidla local socket
-    void onSendCommand2zbyrator(quint16 pollCode, QString ni, QString sn, QString messagetag);
+    void onSendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag);
 
 
 
@@ -64,7 +64,7 @@ public slots:
     void onData2write(QByteArray writearr);
 
     //on settings changed
-    void onConfigChanged(quint16 command, QVariant datavar);
+//    void onConfigChanged(quint16 command, QVariant datavar);
 
 
 

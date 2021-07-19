@@ -30,7 +30,7 @@ signals:
     //from streamreader
     void sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
 
-    void sendCommand2dataHolder(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
+    void sendCommand2dataHolder(quint16 pollCode, QString devID, bool useSn4devID, QString messagetag, QString objecttag);
     //to streamreader
 
     //matilda local socket answer
@@ -46,12 +46,11 @@ signals:
 
 
     void onConnectionUp();
-    void restartReConnectTimer();
+    void restartReConnectTimerMsec(int msec);
+
 
     void checkDHClientConnection();//to data holder client
 
-//on settings changed
-    void onConfigChanged(quint16 command, QVariant datavar);
 
 public slots:
     void onThreadStarted();
@@ -61,28 +60,45 @@ public slots:
 
     void reloadSettings();
 
+
+
     void kickOffAll();
 
 
     void currentOperation(QString messageStrr);
 
 
-    void onSerialPortName(QString serialportname, bool isParityNone);
+
+    void restartReConnectTimer();
+
+    //on settings changed
+        void onConfigChanged(quint16 command, QVariant datavar);
+
+private slots:
+    void onSerialPortErrorHappened();
+
+    void onSerialPortEverythingIsFine();
 
 private:
+
+     bool checkReloadSerialPortSettings();
+
+
     struct MySerialCoverState
     {
 
+
         quint8 serialOpentCounter;//if more than 60 kill the app
 
-        QString portName;
-        qint32 baudRate;
-        bool isParityNone;
+        ModbusSerialSettings serialSettings;
+
+//        QString portName;
+//        qint32 baudRate;
+//        bool isParityNone;
 
 
         bool verboseMode;
         MySerialCoverState() : serialOpentCounter(0),
-            baudRate(19200),
             verboseMode(false) {}
     } mystate;
 

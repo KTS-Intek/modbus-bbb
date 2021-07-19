@@ -1,7 +1,7 @@
 #ifndef MODBUSENCODERDECODERTYPES_H
 #define MODBUSENCODERDECODERTYPES_H
 
-#include <QString>
+#include <QVariantHash>
 
 
 struct OnePhaseRealData
@@ -49,7 +49,39 @@ struct OneModbusVirtualDevice
     OneModbusVirtualDevice() {}
 };
 
+
 typedef QMap<quint8, OneModbusVirtualDevice> ModbusVirtualDevices;
+
+
+struct ModbusGeneralSettings
+{
+    quint32 dataTmsec;
+    quint32 defCacheTsec;
+    QMap<quint8, quint32> cacheTsec;
+
+    quint8 devSrc;//bits
+    ModbusGeneralSettings() : dataTmsec(3000), defCacheTsec(100), devSrc(0) {}
+};
+
+
+
+struct ModbusTcpSettings
+{
+    quint8 mode;
+    quint32 tcpTimeout;
+    quint32 tcpBlcokTimeout;
+    QStringList IPs;
+
+    ModbusTcpSettings() : mode(0), tcpTimeout(1000), tcpBlcokTimeout(100) {}
+};
+
+struct ModbusSerialSettings
+{
+    QVariantHash serialport;
+
+    bool enRTU;
+    ModbusSerialSettings() : enRTU(false) {}
+};
 
 
 

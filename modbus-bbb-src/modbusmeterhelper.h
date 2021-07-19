@@ -40,7 +40,7 @@ public:
     static QList<quint32> getMeterValuesUIN32(const QStringList &listKeys, const qreal &precision, const QVariantHash &hdata, QList<qreal> &realv, QStringList &tablekeys);
 
 
-    static void getAcceptableMeterNis(const QVariantList &l, ModbusVirtualDevices &vdevs);
+    static int getAcceptableMeterNis(const QVariantList &l, ModbusVirtualDevices &vdevs);
 
     static quint8 meterAddressFromHash(const QVariantHash &hash, OneModbusVirtualDevice &onedev);
 

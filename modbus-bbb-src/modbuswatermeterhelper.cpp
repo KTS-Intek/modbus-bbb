@@ -8,13 +8,13 @@
 
 //-------------------------------------------------------------------------------------------
 
-void ModbusWaterMeterHelper::getAcceptableWMeterNis(ModbusVirtualDevices &vdevs)
+int ModbusWaterMeterHelper::getAcceptableWMeterNis(ModbusVirtualDevices &vdevs)
 {
 
     QString errstr;
     const QVariantList l = CompressFileHelper::readCompressedVarListFromTheFile(PathsResolver::path2waterMetersList(), errstr);
 
-    getAcceptableMeterNis(l, vdevs);
+    return getAcceptableMeterNis(l, vdevs);
 
 
 }

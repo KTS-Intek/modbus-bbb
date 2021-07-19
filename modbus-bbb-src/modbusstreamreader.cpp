@@ -43,22 +43,21 @@ void ModbusStreamReader::createObjects()
     if(verboseMode)
         qDebug() << "ModbusStreamReader::createObjects " << QTime::currentTime().toString("hh:mm:ss.zzz") << myparams.isTcpMode << lastConnectionType;
 
-    modbusprocessor->reloadAllSettings();
+//    modbusprocessor->reloadAllSettings();
 }
 
 //----------------------------------------------------------------------
 
-void ModbusStreamReader::sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString ni, QString sn, QString messagetag)
+void ModbusStreamReader::sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString devID, bool useSn4devID, QString messagetag)
 {
-    emit sendCommand2dataHolder(pollCode, ni, sn, messagetag, myparams.objecttag);
+    emit sendCommand2dataHolder(pollCode, devID, useSn4devID, messagetag, myparams.objecttag);
 }
 
 //----------------------------------------------------------------------
 
-void ModbusStreamReader::onSendCommand2zbyrator(quint16 pollCode, QString ni, QString sn, QString messagetag)
+void ModbusStreamReader::onSendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag)
 {
-
-    emit sendCommand2zbyrator(pollCode, ni, sn,  messagetag, myparams.objecttag);
+    emit sendCommand2zbyrator(pollCode, ni, messagetag, myparams.objecttag);
 }
 
 //----------------------------------------------------------------------
@@ -101,28 +100,28 @@ void ModbusStreamReader::onData2write(QByteArray writearr)
 
 //----------------------------------------------------------------------
 
-void ModbusStreamReader::onConfigChanged(quint16 command, QVariant datavar)
-{
-    if(verboseMode)
-        qDebug() << "========================== ModbusStreamReader::onConfigChanged " << command << datavar;
+//void ModbusStreamReader::onConfigChanged(quint16 command, QVariant datavar)
+//{
+//    if(verboseMode)
+//        qDebug() << "========================== ModbusStreamReader::onConfigChanged " << command << datavar;
 
 
-     switch(command){
-     case MTD_EXT_COMMAND_RELOAD_SETT: {//reaload all settings
-         modbusprocessor->onMeterListChanged();
-//         stopWait4conf(); //it sends reloadSettings();
- //        reloadMeters(UC_METER_ELECTRICITY);
+//     switch(command){
+//     case MTD_EXT_COMMAND_RELOAD_SETT: {//reaload all settings
+//         modbusprocessor->onMeterListChanged();
+////         stopWait4conf(); //it sends reloadSettings();
+// //        reloadMeters(UC_METER_ELECTRICITY);
 
-         break;}
+//         break;}
 
-     case MTD_EXT_CUSTOM_COMMAND_0:{
-         modbusprocessor->onMeterListExtChanged();
+//     case MTD_EXT_CUSTOM_COMMAND_0:{
+//         modbusprocessor->onMeterListExtChanged();
 
-         break;}
-     }
+//         break;}
+//     }
 
 
-}
+//}
 
 //----------------------------------------------------------------------
 

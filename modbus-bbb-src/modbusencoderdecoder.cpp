@@ -6,7 +6,10 @@
 #include "src/base/convertatype.h"
 #include "src/base/prettyvalues.h"
 
+#include "myucdevicetypes.h"
 #include "definedpollcodes.h"
+
+#define MYDECODER_CACHE_MINIMUM_MSEC    10000
 
 #define MYDECODER_READF_FIRST_REGISTER          40001
 
@@ -315,11 +318,11 @@ void ModbusEncoderDecoder::startProcessing(const ModbusDecodedParams &lastmessag
 
 void ModbusEncoderDecoder::restartTimerProcessing()
 {
-    qint32 msec = myparams.processingmsec;
-    if(msec < 1111)
-        msec = 1111;
-    else if(msec > 22222)
-        msec = 22222;
+    qint32 msec = myparams.generalSettings.dataTmsec;// processingmsec;
+    if(msec < 1000)
+        msec = 1000;
+    else if(msec > 30000)
+        msec = 30000;
 
     emit startTmrProcessing(msec);
 }
@@ -445,7 +448,7 @@ void ModbusEncoderDecoder::onTmrDataHolderProcessingTimeOut()
             if(myparams.dataFromDataHolder.contains(pollCode))
                 continue;//I have data
 
-            emit sendCommand2dataHolderWOObjectTag(pollCode, ni, sn ,messagetag);
+            emit sendCommand2dataHolderWOObjectTag(pollCode, sn.isEmpty() ? ni : sn, !sn.isEmpty(), messagetag);
 
 
         }
@@ -504,10 +507,12 @@ void ModbusEncoderDecoder::dataFromCache(QString messagetag, QVariantHash lastHa
     if(myparams.messageTags.contains(messagetag)){
         const qint64 msec = lastHash.value("msec").toLongLong();
         const QString ni = lastHash.value("NI").toString();
+        const QString sn = lastHash.value("SN").toString();
+
         const qint64 currmsec = QDateTime::currentMSecsSinceEpoch();
         //force zbyrator to poll
         if(verboseMode)
-            qDebug()  << "ModbusEncoderDecoder::dataFromCache msec " << ni << messagetag
+            qDebug()  << "ModbusEncoderDecoder::dataFromCache msec " << ni << sn << messagetag
                       << QDateTime::fromMSecsSinceEpoch(currmsec).toString("yyyy-MM-dd hh:mm:ss.zzz")
                       << QDateTime::fromMSecsSinceEpoch(msec).toString("yyyy-MM-dd hh:mm:ss.zzz");
 
@@ -561,9 +566,12 @@ void ModbusEncoderDecoder::onMatildaCommandReceived(QString messagetag, bool iso
 
 }
 
+//--------------------------------------------------------------------
+
 void ModbusEncoderDecoder::reloadAllSettings()
 {
-    onMeterListChanged();
+    onModbusSettingsChanged();
+    onMeterListChanged();//it uses general settings
 
 }
 
@@ -571,20 +579,67 @@ void ModbusEncoderDecoder::reloadAllSettings()
 
 void ModbusEncoderDecoder::onMeterListChanged()
 {
-    //it calls when the emeter list changed
-    myparams.myDevices = ModbusElectricityMeterHelper::getAcceptableEMeterNis();
+    //it calls when any meter list changed
+    //you need to add a fileWatcher for all the meters settings files
+    myparams.myDevices.clear();
 
-    ModbusWaterMeterHelper::getAcceptableWMeterNis(myparams.myDevices);
+    const QBitArray srcDevices = ConvertAtype::uint8ToBitArray(myparams.generalSettings.devSrc);
+
+    QStringList listDevicesCount;
+
+
+    if(srcDevices.at(UC_METER_ELECTRICITY)){
+        const int counter = ModbusElectricityMeterHelper::getAcceptableEMeterNis(myparams.myDevices);
+        listDevicesCount.append(QString("%1 meters - '%2'").arg(QString("electricity")).arg(counter));
+    }
+
+
+    if(srcDevices.at(UC_METER_WATER)){
+        const int counter = ModbusWaterMeterHelper::getAcceptableWMeterNis(myparams.myDevices);
+        listDevicesCount.append(QString("%1 meters - '%2'").arg(QString("water")).arg(counter));
+
+    }
+
 //    ModbusGasMeterHelper::getAcceptableGMeterNis(myparams.myDevices);
-    ModbusPulseMeterHelper::getAcceptablePMeterNis(myparams.myDevices);
+
+    //ewgMeterCounter
+    if(srcDevices.at(UC_METER_PULSE)){
+        const int counter = ModbusPulseMeterHelper::getAcceptablePMeterNis(myparams.myDevices);
+        listDevicesCount.append(QString("%1 meters - '%2'").arg(QString("pulses")).arg(counter));
+
+    }
 
 
-    ModbusSettingsLoader::insertModbusForwardingTable(myparams.myDevices);//it must be the last to overwrite any existing address
+    const int ftablecounter = ModbusSettingsLoader::insertModbusForwardingTable(myparams.myDevices);//it must be the last to overwrite any existing address
+
+    if(ftablecounter > 0){
+        listDevicesCount.append(QString("forwarding table devices - '%1'").arg(ftablecounter));
+    }
+
+    if(myparams.myDevices.isEmpty())
+        listDevicesCount.append(QString("There is no any acceptable modbus address"));
+
+    emit append2textLog(QString("Total device count - '%1', %2")
+                        .arg(myparams.myDevices.size())
+                        .arg(listDevicesCount.join(", ")));
+
 
     //NI to addres
 
 
 
+
+
+}
+
+//--------------------------------------------------------------------
+
+void ModbusEncoderDecoder::onModbusSettingsChanged()
+{
+    myparams.generalSettings = ModbusSettingsLoader::getModbusGeneralSettings();
+
+    if(myparams.generalSettings.defCacheTsec < MYDECODER_CACHE_MINIMUM_MSEC)
+        myparams.generalSettings.defCacheTsec = MYDECODER_CACHE_MINIMUM_MSEC;
 
 
 }
@@ -706,7 +761,9 @@ void ModbusEncoderDecoder::findData4theseRegister(const quint16 &startRegister, 
         if(verboseMode)
             qDebug() << "sendCommand2dataHolderWOObjectTag " << pollCode << ni << sn << int(myparams.lastmessageparams.devaddress) << messagetag;
 
-        emit sendCommand2dataHolderWOObjectTag(pollCode, ni, sn, messagetag);
+
+
+        emit sendCommand2dataHolderWOObjectTag(pollCode, sn.isEmpty() ? ni : sn, !sn.isEmpty(), messagetag);
 
         //add some time btwn requests
         //        QThread::msleep(111);
@@ -778,18 +835,22 @@ bool ModbusEncoderDecoder::isCachedDataAcceptable(const QVariantHash &lastHash, 
 
     const QString nimapped = myparams.listDevAddr2meterNI.value(myparams.lastmessageparams.devaddress, QString::number(myparams.lastmessageparams.devaddress));
 
-    if(!myparams.lastPollCodes2receive.contains(pollCode) || ni.isEmpty() || nimapped != ni){
+    if(!myparams.lastPollCodes2receive.contains(pollCode) || ni.isEmpty() || myparams.myDevices.contains(ni)){ //  nimapped != ni){
         //force zbyrator to poll
 
         return false;
     }
 
+    add NI and SN checker
+
     const qint64 msec = h.value("msec").toLongLong();
     const qint64 currmsec = QDateTime::currentMSecsSinceEpoch();
     const qint64 msecdiff = currmsec - msec;
 
-    const int msecdiffallowed = 300000; //5 minutes
-    if(!ignoreMsec && qAbs(msecdiff) > msecdiffallowed){
+    const quint32 msecdiffallowed = myparams.generalSettings.cacheTsec.value(pollCode, myparams.generalSettings.defCacheTsec);// 300000; //5 minutes
+//    IF(msecdiffallowed) less than MYDECODER_CACHE_MINIMUM_MSEC, it is unlimited
+
+    if(!ignoreMsec && msecdiffallowed >= MYDECODER_CACHE_MINIMUM_MSEC && quint32(qAbs(msecdiff)) > msecdiffallowed){
         add2dataHolder = (!myparams.lastPollCodes2send.contains(pollCode));//only if msec is bad
 
 

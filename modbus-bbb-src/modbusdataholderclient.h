@@ -32,13 +32,13 @@ public slots:
     void checkYourConnection();
 
     //for client side
-    void sendCommand2dataHolder(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
+    void sendCommand2dataHolder(quint16 pollCode, QString devID, bool useSn4devID, QString messagetag, QString objecttag);
 
 
 
 
 private:
-    void onDATAHOLDER_GET_POLLDATA(const QVariantHash &hash);
+    void onDATAHOLDER_GET_POLLDATA_EXT(const QVariantHash &hash);
 
 
 };

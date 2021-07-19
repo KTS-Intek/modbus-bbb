@@ -195,6 +195,8 @@ void ModbusResourceManager::createSerialPortReader()
 
 void ModbusResourceManager::createMatildaLSClient()
 {
+    //it starts meters poll
+    //a poll can be started only if NI is known
 #ifdef __x86_64
     if(true)
         return;//for test only
@@ -228,6 +230,7 @@ void ModbusResourceManager::createMatildaLSClient()
 
 void ModbusResourceManager::createDataHolderClient()
 {
+    //SN or NI can be used
     ModbusDataHolderClient *dhclient = new ModbusDataHolderClient("all", verboseMode);
     QThread *thread = new QThread;
     thread->setObjectName("ModbusDataHolderClient");

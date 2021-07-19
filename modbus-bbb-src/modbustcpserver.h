@@ -20,10 +20,11 @@ signals:
     void restartApp();
 
 
-    //from streamreader
-    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString sn, QString messagetag, QString objecttag);
 
-    void sendCommand2dataHolder(quint16 pollCode, QString ni, QString sn, QString messagetag, QString objecttag);
+    //from streamreader
+    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
+
+    void sendCommand2dataHolder(quint16 pollCode, QString devID, bool useSn4devID, QString messagetag, QString objecttag);
     //to streamreader
 
     //matilda local socket answer
@@ -38,11 +39,12 @@ signals:
     void killAllObjects();//stop threads
     void stopAllSocket();//kill all objectss
 
+    void reloadTcpSettings();
 
     void checkDHClientConnection();//to data holder client
 
-    //on settings changed
-    void onConfigChanged(quint16 command, QVariant datavar);
+
+    void restartTmrRestart();
 
 public slots:
     void onThrdStarted();
@@ -54,6 +56,17 @@ public slots:
     void stopServerNow();
 
     void startServer();
+
+
+
+
+    //on settings changed
+    void onConfigChanged(quint16 command, QVariant datavar);
+
+    void reloadSettings();
+
+
+
 
 protected:
     void incomingConnection(qintptr handle);
@@ -68,8 +81,10 @@ private:
         quint64 connectionCounter;
         quint8 serverStartCounter;//if more than 60 kill the app
 
+        bool allowTcpServer;
+
         bool verboseMode;
-        MyTcpServerState() : activeConnectionCounter(0), connectionCounter(0), verboseMode(false) {}
+        MyTcpServerState() : activeConnectionCounter(0), connectionCounter(0), allowTcpServer(false), verboseMode(false) {}
     } myserverstate;
 
 

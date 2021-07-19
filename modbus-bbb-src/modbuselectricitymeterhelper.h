@@ -11,7 +11,7 @@ class ModbusElectricityMeterHelper : public ModbusMeterHelper
 
 public:
 
-    static ModbusVirtualDevices getAcceptableEMeterNis();
+    static int getAcceptableEMeterNis(ModbusVirtualDevices &vdevs);
 
 
 

@@ -50,9 +50,9 @@ public:
     QString generateQuickPollLine(const QByteArray &readArr);
 
 signals:
-    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString sn, QString messagetag);// don't forget to add a tag, quint16 messagetag);
+    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
 
-    void sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString ni, QString sn, QString messagetag);
+    void sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString devID, bool useSn4devID, QString messagetag);
 
 
     void onData2write(QByteArray writearr);
@@ -99,7 +99,11 @@ public slots:
 
 
     void reloadAllSettings();
+
     void onMeterListChanged();
+
+    void onModbusSettingsChanged();
+
 
 private:
 
@@ -158,6 +162,8 @@ private:
         bool isModbusMasterSide;//it must false here
 
         ModbusVirtualDevices myDevices;
+
+        ModbusGeneralSettings generalSettings;
 //        QList<quint8> listMeterNIs;//only acceptable values
 //        QHash<quint8,QString> listDevAddr2meterNI;
 
@@ -166,7 +172,7 @@ private:
 
         quint16 busyCounter; //it counts requsts when the task is processed
 
-        qint32 processingmsec; //msec of the timeout
+//        qint32 processingmsec; //msec of the timeout
 
         quint8 processintTimeoutCounter; //it limits count of timeouts
 
@@ -197,7 +203,7 @@ private:
             modbusDecoderMode(MODBUS_MODE_RTU),
             isModbusMasterSide(false),
             busyCounter(0),
-            processingmsec(5555),//fucking com'x doesn't accept big timeout
+//            processingmsec(5555),//fucking com'x doesn't accept big timeout
             processintTimeoutCounter(0),
             messageCounter(0),
             lastStartRegister(0), lastRegisterCount(0)

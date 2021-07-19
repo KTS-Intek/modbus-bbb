@@ -86,6 +86,7 @@ SOURCES += \
         modbus-bbb-src/modbustcpoutservice.cpp \
         modbus-bbb-src/modbustcpoutsocket.cpp \
         modbus-bbb-src/modbustcpserver.cpp \
+        modbus-bbb-src/modbustcpsocketcover.cpp \
         modbus-bbb-src/modbuswatermeterhelper.cpp
 
 
@@ -107,4 +108,5 @@ HEADERS += \
     modbus-bbb-src/modbustcpoutservice.h \
     modbus-bbb-src/modbustcpoutsocket.h \
     modbus-bbb-src/modbustcpserver.h \
+    modbus-bbb-src/modbustcpsocketcover.h \
     modbus-bbb-src/modbuswatermeterhelper.h

@@ -4,6 +4,12 @@
 ///[!] type-converter
 #include "src/shared/ifacehelper.h"
 
+///[!] ifaces
+#include "src/emb/conf2modem.h"
+
+
+#include "moji_defy.h"
+
 
 
 ModbusSerialPortCover::ModbusSerialPortCover(const bool &verboseMode, QObject *parent) : QObject(parent)
@@ -24,7 +30,7 @@ void ModbusSerialPortCover::onThreadStarted()
     tmrReconnect->setInterval(1111);
     tmrReconnect->setSingleShot(true);
 
-    connect(this, SIGNAL(restartReConnectTimer()), tmrReconnect, SLOT(start()));
+    connect(this, SIGNAL(restartReConnectTimerMsec(int)), tmrReconnect, SLOT(start(int)));
     connect(tmrReconnect, &QTimer::timeout, this, &ModbusSerialPortCover::reconnect2serialPort);
     connect(this, &ModbusSerialPortCover::onConnectionUp, tmrReconnect, &QTimer::stop);
 
@@ -56,7 +62,7 @@ void ModbusSerialPortCover::onThreadStarted()
 
     connect(this, &ModbusSerialPortCover::onConnectionUp, this, &ModbusSerialPortCover::checkDHClientConnection);
 
-    connect(this, &ModbusSerialPortCover::onConfigChanged, streamr, &ModbusStreamReader::onConfigChanged);
+    //    connect(this, &ModbusSerialPortCover::onConfigChanged, streamr, &ModbusStreamReader::onConfigChanged);
 
 
 
@@ -64,9 +70,10 @@ void ModbusSerialPortCover::onThreadStarted()
     connect(ifceHlpr, &IfaceHelper::ifaceLogStr, this, &ModbusSerialPortCover::ifaceLogStr);
     connect(streamr, &ModbusStreamReader::dataReadWriteReal, ifceHlpr, &IfaceHelper::showHexDump);
 
+    reloadSettings();
 
 
-    QTimer::singleShot(111, streamr, SLOT(createObjects()));// this, SLOT(reloadSettings()));
+    //    QTimer::singleShot(111, streamr, SLOT(createObjects()));// this, SLOT(reloadSettings()));
 
 }
 
@@ -74,42 +81,70 @@ void ModbusSerialPortCover::onThreadStarted()
 
 void ModbusSerialPortCover::reconnect2serialPort()
 {
-    emit append2log(QString("The port name is '%1'").arg(mystate.portName));
-
-    if(mystate.portName.isEmpty())
+    if(!mystate.serialSettings.enRTU){
+        emit append2log(QString("Modbus RTU is disabled"));
         return;
-    emit append2log(QString("%1 is going to be opened").arg(mystate.portName));
+    }
+
+    QString errstr;
+
+    const auto interfaceSettings = ModbusSettingsLoader::getInterafaceSettMap(mystate.serialSettings, errstr);
+
+    if(!errstr.isEmpty()){
+        emit append2log(QString("Modbus RTU is disabled, %1").arg(errstr));
+        onSerialPortErrorHappened();
+        return;
+    }
+
+    const auto serialp = Conf2modem::convertFromVarMap(interfaceSettings);
+    const auto connSett = serialp.connSett;
+
+    streamr->setTimeouts(connSett.timeOutG, connSett.timeOutB);
+    streamr->setIgnoreUartChecks(true);
+
+
+    emit append2log(QString("%1 is going to be opened").arg(serialp.ifaceParams));
 
     //const bool &workWithoutAPI, const QString &portName, const qint32 &baudRate, const QStringList &uarts, const qint8 &databits, const qint8 &stopbits, const qint8 &parity, const qint8 &flowcontrol)
 
     //it has parity correction
-    if(streamr->openSerialPort(true, mystate.portName, mystate.baudRate, mystate.portName.split(" "),
-                               8, 1, mystate.isParityNone ? 0 : 1, QSerialPort::NoFlowControl)){
+    if(streamr->openSerialPort(true, connSett.prdvtrAddr, connSett.prdvtrPort, connSett.uarts, connSett.databits, connSett.stopbits, connSett.parity, connSett.flowcontrol)){
         //const qint8 &databits, const qint8 &stopbits, const qint8 &parity, const qint8 &flowcontrol
-        qDebug() << "ModbusSerialPortCover port is opened " << mystate.portName;
-
-        emit append2log(QString("%1 is opened, parity=%2,%3").arg(mystate.portName).arg(int(mystate.isParityNone)).arg(int(streamr->serialPort->parity())));
+        if(streamr->verboseMode)
+            qDebug() << "ModbusSerialPortCover port is opened " << mystate.prdvtrAddr;
+        //if everything is fine, streamr tells it
+        //        emit append2log(QString("%1 is opened, parity=%3").arg(mystate.prdvtrAddr).arg(int(streamr->serialPort->parity())));
+        onSerialPortEverythingIsFine();
         return;
     }
 
-    if(mystate.serialOpentCounter < 70)
-        mystate.serialOpentCounter++;
-     emit restartReConnectTimer();
-
-    if(mystate.serialOpentCounter > 60)
-        emit restartApp();
-
+    onSerialPortErrorHappened();
 
 
 }
 
 void ModbusSerialPortCover::reloadSettings()
 {
-    emit append2log(QString("%1, ModbusSerialPortCover::reloadSettings").arg(mystate.portName));
+    //    emit append2log(QString("%1, ModbusSerialPortCover::reloadSettings").arg(mystate.portName));
+
+
+    mystate.serialOpentCounter = 0;//reset the counter
+
+    streamr->modbusprocessor->reloadAllSettings();
+    emit append2log(QString("Updating serial port settings"));
+
+    if(!checkReloadSerialPortSettings()){
+        emit append2log(QString("serial port settings: nothing has changed"));
+        return; //port settings are the same
+    }
+//    emit append2log(QString("serial port settings: nothing has changed"));
 
     streamr->closeDevice();
-    emit restartReConnectTimer();
+
+    restartReConnectTimer();
 }
+
+
 
 void ModbusSerialPortCover::kickOffAll()
 {
@@ -119,19 +154,85 @@ void ModbusSerialPortCover::kickOffAll()
 
 void ModbusSerialPortCover::currentOperation(QString messageStrr)
 {
+
     qDebug() << "ModbusSerialPortCover " << messageStrr;
 
 }
 
-void ModbusSerialPortCover::onSerialPortName(QString serialportname, bool isParityNone)
-{
-    qDebug() << "ModbusSerialPortCover serialportname " << serialportname << isParityNone;
-    emit append2log(QString("%1, %2, None=%3 ModbusSerialPortCover::onSerialPortName").arg(mystate.portName).arg(serialportname).arg(int(isParityNone)));
 
-    if(serialportname != mystate.portName){
-        mystate.serialOpentCounter = ;
-        mystate.portName = serialportname;
-        mystate.isParityNone = isParityNone;
+void ModbusSerialPortCover::restartReConnectTimer()
+{
+    emit restartReConnectTimerMsec(1111);
+}
+
+void ModbusSerialPortCover::onConfigChanged(quint16 command, QVariant datavar)
+{
+
+
+
+    if(streamr->verboseMode)
+        qDebug() << "========================== ModbusSerialPortCover::onConfigChanged " << command << datavar;
+
+    if(command == MTD_EXT_COMMAND_RELOAD_SETT || command == MTD_EXT_CUSTOM_COMMAND_0){
+
         reloadSettings();
     }
+
+    //     switch(command){
+    //     case MTD_EXT_COMMAND_RELOAD_SETT: {//reaload all settings
+    //         modbusprocessor->onMeterListChanged();
+    ////         stopWait4conf(); //it sends reloadSettings();
+    // //        reloadMeters(UC_METER_ELECTRICITY);
+
+    //         break;}
+
+    //     case MTD_EXT_CUSTOM_COMMAND_0:{
+    //         modbusprocessor->onMeterListExtChanged();
+
+    //         break;}
+    //     }
+
+
+}
+
+void ModbusSerialPortCover::onSerialPortErrorHappened()
+{
+
+    if(mystate.serialOpentCounter < 70)
+        mystate.serialOpentCounter++;
+    emit restartReConnectTimerMsec(9999); //approximatelly 10 restart cycle
+
+    if(mystate.serialOpentCounter > 60)
+        emit restartApp();
+
+}
+
+void ModbusSerialPortCover::onSerialPortEverythingIsFine()
+{
+    if(mystate.serialOpentCounter > 0)
+        emit append2log(QString("The self-destruct counter was %1").arg(int(mystate.serialOpentCounter)));
+    mystate.serialOpentCounter = 0;
+}
+
+bool ModbusSerialPortCover::checkReloadSerialPortSettings()
+{
+    //return true if something is changed
+
+    const ModbusSerialSettings serialSettingsOld = mystate.serialSettings;
+
+
+
+    mystate.serialSettings = ModbusSettingsLoader::getModbusSerialSettings();
+
+    if(mystate.serialSettings.enRTU != serialSettingsOld.enRTU)
+        return true;
+
+
+    QString errstr;
+    const auto serialpOld = Conf2modem::convertFromVarMap(ModbusSettingsLoader::getInterafaceSettMap(mystate.serialSettings, errstr));
+    const auto serialpNew = Conf2modem::convertFromVarMap(ModbusSettingsLoader::getInterafaceSettMap(mystate.serialSettings, errstr));
+
+
+    return (serialpOld.ifaceParams != serialpNew.ifaceParams); //it checks all uart settings
+
 }

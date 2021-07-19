@@ -7,7 +7,7 @@
 class ModbusPulseMeterHelper : public ModbusMeterHelper
 {
 public:
-    static void getAcceptablePMeterNis(ModbusVirtualDevices &vdevs);
+    static int getAcceptablePMeterNis(ModbusVirtualDevices &vdevs);
 
     static ModbusAnswerList getTotalPulseAnswer(const QVariantHash &hdata, const bool &verboseMode);
 

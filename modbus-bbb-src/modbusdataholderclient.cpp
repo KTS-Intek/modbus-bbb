@@ -43,8 +43,8 @@ void ModbusDataHolderClient::decodeReadData(const QVariant &dataVar, const quint
 //    case DATAHOLDER_ADD_POLLDATA: {
 //        onDATAHOLDER_ADD_POLLDATA(dataVar.toHash());
 //        break;}
-      case DATAHOLDER_GET_POLLDATA: {
-          onDATAHOLDER_GET_POLLDATA(dataVar.toHash());
+      case DATAHOLDER_GET_POLLDATA_EXT: {
+          onDATAHOLDER_GET_POLLDATA_EXT(dataVar.toHash());
           break;}
     }
 }
@@ -73,12 +73,24 @@ void ModbusDataHolderClient::checkYourConnection()
 
 //----------------------------------------------------------------------------------------------
 
-void ModbusDataHolderClient::sendCommand2dataHolder(quint16 pollCode, QString ni, QString messagetag, QString objecttag)
+void ModbusDataHolderClient::sendCommand2dataHolder(quint16 pollCode, QString devID, bool useSn4devID, QString messagetag, QString objecttag)
 {
     if(state() != QLocalSocket::ConnectedState){
         emit onCommandReceived(messagetag, objecttag, false, "there is no connection");
         return;
     }
+
+//    const QVariant messagetag = hash.value("messagetag");
+//    const QVariant objecttag = hash.value("objecttag");
+
+
+//    bool hasPollCode;
+//    const quint16 pollCode = hash.value("pollCode").toUInt(&hasPollCode);
+
+
+//    const QStringList devIDs = hash.value("devIDs").toStringList();
+//    const bool useSn4devID = hash.value("useSn4devID", false).toBool();
+
 
     QVariantHash h;
 
@@ -86,9 +98,10 @@ void ModbusDataHolderClient::sendCommand2dataHolder(quint16 pollCode, QString ni
     h.insert("objecttag", objecttag);
     //main
     h.insert("pollCode", pollCode);
-    h.insert("NI", ni);
+    h.insert("devIDs", devID.split("\r\n\r"));// devIDs);
+    h.insert("useSn4devID", useSn4devID);
 
-    const qint64 r = mWrite2extensionF(h, DATAHOLDER_GET_POLLDATA);
+    const qint64 r = mWrite2extensionF(h, DATAHOLDER_GET_POLLDATA_EXT);
     if(r > 0){
         emit onCommandReceived(messagetag, objecttag, true, QString::number(r));
         return;
@@ -99,7 +112,7 @@ void ModbusDataHolderClient::sendCommand2dataHolder(quint16 pollCode, QString ni
 
 //----------------------------------------------------------------------------------------------
 
-void ModbusDataHolderClient::onDATAHOLDER_GET_POLLDATA(const QVariantHash &hash)
+void ModbusDataHolderClient::onDATAHOLDER_GET_POLLDATA_EXT(const QVariantHash &hash)
 {
     const QString messagetag = hash.value("messagetag").toString();
     const QString objecttag = hash.value("objecttag").toString();
@@ -107,7 +120,7 @@ void ModbusDataHolderClient::onDATAHOLDER_GET_POLLDATA(const QVariantHash &hash)
     if(hash.contains("varlist")){
         const QVariantList l = hash.value("varlist").toList();
         if(!l.isEmpty()){
-            emit dataFromCache(messagetag, objecttag, l.last().toHash());
+            emit dataFromCache(messagetag, objecttag, l.last().toHash());//It contains NI and SN (devID or additionalID)
             return;
         }
         emit onCommandReceived(messagetag, objecttag, false, QString("Empty object is received, 'varlist'"));

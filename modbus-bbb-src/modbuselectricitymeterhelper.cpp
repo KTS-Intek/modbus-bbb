@@ -18,11 +18,10 @@
 
 //-------------------------------------------------------------------------------------------
 
-ModbusVirtualDevices ModbusElectricityMeterHelper::getAcceptableEMeterNis()
+int ModbusElectricityMeterHelper::getAcceptableEMeterNis(ModbusVirtualDevices &vdevs)
 {
-    ModbusVirtualDevices devadds;
 
-
+    int counter = 0;
     QFile file(PathsResolver::path2electricityMetersList());
     if(file.open(QFile::ReadOnly)){
 
@@ -35,13 +34,15 @@ ModbusVirtualDevices ModbusElectricityMeterHelper::getAcceptableEMeterNis()
 
             OneModbusVirtualDevice onedev;
             const quint8 add = meterAddressFromHash(hash, onedev);
-            if(add > 0)
-                devadds.insert(add, onedev);
+            if(add > 0){
+                vdevs.insert(add, onedev);
+                counter++;
+            }
 
         }
         file.close();
     }
-    return devadds;
+    return counter;
 }
 
 
