@@ -8,6 +8,7 @@
 
 #include "ifaceconnectiondefs.h"
 
+
 //---------------------------------------------------------------------------
 
 ModbusSettingsLoader::ModbusSettingsLoader(QObject *parent) : QObject(parent)
@@ -19,7 +20,7 @@ ModbusSettingsLoader::ModbusSettingsLoader(QObject *parent) : QObject(parent)
 
 int ModbusSettingsLoader::insertModbusForwardingTable(ModbusVirtualDevices &vdevs)
 {
-    const int counter = 0;
+    int counter = 0;
     const QVariantHash h =  SettLoader4matilda().loadOneSett(SETT_MODBUS_DEVICES_SETTINGS).toHash();//modbus address to other device type and address
 
 
@@ -117,7 +118,7 @@ QMap<quint8, quint32> ModbusSettingsLoader::mapTsecFromList(const QStringList &l
 
 ModbusTcpSettings ModbusSettingsLoader::getModbusTcpSettings()
 {
-    const QVariantHash h = SettLoader4matilda().loadOneSett(SETT_MODBUS_SETTINGS).toHash();
+    const QVariantHash h = SettLoader4matilda().loadOneSett(SETT_MODBUS_TCP_IFACE).toHash();
 
     ModbusTcpSettings settings;
 

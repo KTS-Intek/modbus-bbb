@@ -174,7 +174,7 @@ void ModbusEncoderDecoder::canProcessTheLine(const QByteArray &readArr)
         return;//nothing has happened
 
     ModbusDecodedParams lastmessageparams;
-    if(!isMessageReadingFinished(readArr, lastmessageparams)){
+    if(!isMessageReadingFinished(readArr, lastmessageparams)){ //devaddress = it comes from there
         sendErrorCode4thisDecoderError(lastmessageparams);
         return;
     }
@@ -235,6 +235,12 @@ void ModbusEncoderDecoder::canProcessTheLine(const QByteArray &readArr)
 
 }
 
+bool ModbusEncoderDecoder::isItAPulseMeterPollCode(const quint8 &pollCode)
+{
+    const auto pcSimple = (pollCode%20);
+    return (pcSimple == UC_METER_PULSE);
+}
+
 //--------------------------------------------------------------------
 
 void ModbusEncoderDecoder::createObjects()
@@ -256,7 +262,7 @@ void ModbusEncoderDecoder::createObjects()
     QTimer *timerDataHolder = new QTimer(this);
     timerDataHolder->setInterval(555);
     timerDataHolder->setSingleShot(true);
-    connect(this, SIGNAL(startTmrDataHolderProcessing(int)), timerDataHolder, SLOT(start(int)));
+    connect(this, SIGNAL(startTmrDataHolderProcessing(int)), timerDataHolder, SLOT(start(int))); //it limits  data holder requests processing time, it can't be unlimited
     connect(this, &ModbusEncoderDecoder::stopTmrProcessing, timerDataHolder, &QTimer::stop);
     connect(timerDataHolder, &QTimer::timeout, this, &ModbusEncoderDecoder::onTmrDataHolderProcessingTimeOut);//create a new requests to Data holder, to get the data
 }
@@ -307,7 +313,7 @@ void ModbusEncoderDecoder::startProcessing(const ModbusDecodedParams &lastmessag
     myparams.msecOfTheRequest = QDateTime::currentMSecsSinceEpoch();
 
     restartTimerProcessing();
-    emit startTmrFinitaLaComedia(55555);
+    emit startTmrFinitaLaComedia(myparams.generalSettings.dataTmsec + 2000);
     emit startTmrDataHolderProcessing(2222);
 
     if(verboseMode)
@@ -335,8 +341,10 @@ void ModbusEncoderDecoder::onTmrProcessingTimeOut()
         return;
 
 
+
     if(myparams.lastmessageparams.devaddress > 0 && myparams.lastmessageparams.devaddress < 248){
 
+        //if there is no new data for a long time, send anything that it has
 
         const QList<quint8> lk = cachedDataHolderAnswers.keys();
 
@@ -348,7 +356,10 @@ void ModbusEncoderDecoder::onTmrProcessingTimeOut()
             bool add2dataHolder;
             for(int i = 0, imax = lk.size(); i < imax; i++){
 
-                isCachedDataAcceptable(cachedDataHolderAnswers.value(lk.at(i)), true, add2dataHolder);
+                const auto varlist = cachedDataHolderAnswers.values(lk.at(i));
+
+                for(int j = 0, jmax = varlist.size(); j < jmax; j++)
+                    isCachedDataAcceptable(varlist.at(j), true, add2dataHolder);
 
 
 
@@ -501,36 +512,60 @@ void ModbusEncoderDecoder::onDataHolderCommandReceived(QString messagetag, bool 
 
 //--------------------------------------------------------------------
 
-void ModbusEncoderDecoder::dataFromCache(QString messagetag, QVariantHash lastHash)
+void ModbusEncoderDecoder::dataFromCache(QString messagetag, QVariantList lastData)
 {
     //data from DataHolder
+    if(lastData.isEmpty())
+        return;
+
     if(myparams.messageTags.contains(messagetag)){
-        const qint64 msec = lastHash.value("msec").toLongLong();
-        const QString ni = lastHash.value("NI").toString();
-        const QString sn = lastHash.value("SN").toString();
-
         const qint64 currmsec = QDateTime::currentMSecsSinceEpoch();
-        //force zbyrator to poll
-        if(verboseMode)
-            qDebug()  << "ModbusEncoderDecoder::dataFromCache msec " << ni << sn << messagetag
-                      << QDateTime::fromMSecsSinceEpoch(currmsec).toString("yyyy-MM-dd hh:mm:ss.zzz")
-                      << QDateTime::fromMSecsSinceEpoch(msec).toString("yyyy-MM-dd hh:mm:ss.zzz");
 
-        //the average delay was 8 seconds
-        bool add2dataHolder;
-        if(!isCachedDataAcceptable(lastHash, false, add2dataHolder)){
+        bool startZbyratorPollLater = false;
 
-            if(add2dataHolder){
-                const quint8 pollCode = lastHash.value("pollCode").toUInt();
-                cachedDataHolderAnswers.insert(pollCode, lastHash);
+        QList<QVariantHash> varAddLater;
+
+        for(int i = 0, imax = lastData.size(); i < imax; i++){
+            const QVariantHash lastHash = lastData.at(i).toHash();
+
+            const qint64 msec = lastHash.value("msec").toLongLong();
+            const QString ni = lastHash.value("NI").toString();
+            const QString sn = lastHash.value("SN").toString();
+
+            //force zbyrator to poll
+            if(verboseMode)
+                qDebug()  << "ModbusEncoderDecoder::dataFromCache msec " << ni << sn << messagetag
+                          << QDateTime::fromMSecsSinceEpoch(currmsec).toString("yyyy-MM-dd hh:mm:ss.zzz")
+                          << QDateTime::fromMSecsSinceEpoch(msec).toString("yyyy-MM-dd hh:mm:ss.zzz");
+
+            //the average delay was 8 seconds
+            bool add2dataHolder;
+            if(!isCachedDataAcceptable(lastHash, false, add2dataHolder)){
+
+                if(add2dataHolder)
+                    varAddLater.append(lastHash);
+
+                startZbyratorPollLater = true;
             }
 
 
+        }
+
+        if(!varAddLater.isEmpty()){
+
+            for(int i = 0, imax = varAddLater.size(); i < imax; i++){
+                const auto lastHash = varAddLater.at(i);
+                const quint8 pollCode = lastHash.value("pollCode").toUInt();
+                updateCachedDataHolderAnswers(lastHash, pollCode);
+            }
+        }
+
+        if(lastData.isEmpty() || startZbyratorPollLater){
             //force zbyrator to poll
             startZbyratorPoll(messagetag);
-
             return;
         }
+
 
         if(checkSendDataToTheMaster()){
             emit append2textLog("dataFromCache checkSendDataToTheMaster");
@@ -603,11 +638,16 @@ void ModbusEncoderDecoder::onMeterListChanged()
 //    ModbusGasMeterHelper::getAcceptableGMeterNis(myparams.myDevices);
 
     //ewgMeterCounter
+    myparams.myPulseMeterNIs.clear();
     if(srcDevices.at(UC_METER_PULSE)){
-        const int counter = ModbusPulseMeterHelper::getAcceptablePMeterNis(myparams.myDevices);
+        const int counter = ModbusPulseMeterHelper::getAcceptablePMeterNis(myparams.myDevices, myparams.myPulseMeterNIs);
         listDevicesCount.append(QString("%1 meters - '%2'").arg(QString("pulses")).arg(counter));
-
+    }else{
+        ModbusVirtualDevices myDevices;
+        ModbusPulseMeterHelper::getAcceptablePMeterNis(myDevices, myparams.myPulseMeterNIs);
     }
+
+    //store pulse meter NIs
 
 
     const int ftablecounter = ModbusSettingsLoader::insertModbusForwardingTable(myparams.myDevices);//it must be the last to overwrite any existing address
@@ -641,6 +681,61 @@ void ModbusEncoderDecoder::onModbusSettingsChanged()
     if(myparams.generalSettings.defCacheTsec < MYDECODER_CACHE_MINIMUM_MSEC)
         myparams.generalSettings.defCacheTsec = MYDECODER_CACHE_MINIMUM_MSEC;
 
+
+}
+
+void ModbusEncoderDecoder::updateDataFromDataHolder(const QVariantHash &lastHash, const quint8 &pollCode)
+{
+    if(verboseMode)
+        qDebug() << "ModbusEncoderDecoder::updateDataFromDataHolder " ;
+    updateHash(myparams.dataFromDataHolder, lastHash, pollCode);
+}
+
+void ModbusEncoderDecoder::updateCachedDataHolderAnswers(const QVariantHash &lastHash, const quint8 &pollCode)
+{
+    if(verboseMode)
+        qDebug() << "ModbusEncoderDecoder::updateCachedDataHolderAnswers " ;
+    updateHash(cachedDataHolderAnswers, lastHash, pollCode);
+
+}
+
+void ModbusEncoderDecoder::updateHash(QHash<quint8, QVariantHash> &h, const QVariantHash &lastHash, const quint8 &pollCode)
+{
+
+    if(isItAPulseMeterPollCode(pollCode)){
+//        onDATAHOLDER_GET_POLLDATA_EXT  QHash(("restore", QVariant(bool, false))("pollCode", QVariant(int, 143))("NI", QVariant(QString, "215"))
+//        ("src", QVariant(QString, "zbyrator-bbb-addpd"))("data", QVariant(QVariantHash, QHash(("tvlu", QVariant(QString, "123"))("chnnl", QVariant(QString, "0")))))
+//        ("msec", QVariant(qlonglong, 1626784469179))("SN", QVariant(QString, "215")))
+
+        const QString chnnl = lastHash.value("chnnl").toString();
+
+        auto values = h.values(pollCode);
+        bool oneItemIsRemoved = false;
+        for(int i = 0, imax = values.size(); i < imax; i++){
+            if(values.at(i).value("data").toHash().value("chnnl").toString() == chnnl){
+                values.removeAt(i);
+                oneItemIsRemoved = true;
+                break;
+
+            }
+        }
+
+        if(!oneItemIsRemoved){
+            h.insertMulti(pollCode, lastHash);
+        }else{
+            values.append(lastHash);
+            h.remove(pollCode);
+            for(int i = 0, imax = values.size(); i < imax; i++)
+                h.insertMulti(pollCode, values.at(i));
+
+
+        }
+
+        if(verboseMode)
+            qDebug() << "ModbusEncoderDecoder::updateHash " << oneItemIsRemoved << chnnl << values.size() << lastHash;
+
+    }else
+        h.insert(pollCode, lastHash);//insert newer data
 
 }
 
@@ -828,29 +923,32 @@ bool ModbusEncoderDecoder::isCachedDataAcceptable(const QVariantHash &lastHash, 
     //    }
 
     //it must contain one record
-    const QVariantHash h = lastHash;
-    const quint8 pollCode = h.value("pollCode").toUInt();
-    const QString ni = h.value("NI").toString();
-    const QString sn = h.value("SN").toString();
 
-    const QString nimapped = myparams.listDevAddr2meterNI.value(myparams.lastmessageparams.devaddress, QString::number(myparams.lastmessageparams.devaddress));
+    const quint8 pollCode = lastHash.value("pollCode").toUInt();
 
-    if(!myparams.lastPollCodes2receive.contains(pollCode) || ni.isEmpty() || myparams.myDevices.contains(ni)){ //  nimapped != ni){
+
+    if(!myparams.lastPollCodes2receive.contains(pollCode)){ // ni.isEmpty() || myparams.myDevices.contains(ni)){ //  nimapped != ni){
         //force zbyrator to poll
-
+        if(verboseMode)
+            qDebug() << "isCachedDataAcceptable !lastPollCodes2receive " << int(pollCode);
         return false;
     }
 
-    add NI and SN checker
+    if(!isCachedDataAddressAcceptable(lastHash)){
+        if(verboseMode)
+            qDebug() << "isCachedDataAcceptable !isCachedDataAddressAcceptable " << int(myparams.lastmessageparams.devaddress) << lastHash.value("NI").toString() << lastHash.value("SN").toString();
+        return false;
+    }
 
-    const qint64 msec = h.value("msec").toLongLong();
+
+    const qint64 msec = lastHash.value("msec").toLongLong();
     const qint64 currmsec = QDateTime::currentMSecsSinceEpoch();
     const qint64 msecdiff = currmsec - msec;
 
-    const quint32 msecdiffallowed = myparams.generalSettings.cacheTsec.value(pollCode, myparams.generalSettings.defCacheTsec);// 300000; //5 minutes
+    const qint64 msecdiffallowed = qint64(myparams.generalSettings.cacheTsec.value(pollCode, myparams.generalSettings.defCacheTsec));// 300000; //5 minutes
 //    IF(msecdiffallowed) less than MYDECODER_CACHE_MINIMUM_MSEC, it is unlimited
 
-    if(!ignoreMsec && msecdiffallowed >= MYDECODER_CACHE_MINIMUM_MSEC && quint32(qAbs(msecdiff)) > msecdiffallowed){
+    if(!ignoreMsec && msecdiffallowed >= MYDECODER_CACHE_MINIMUM_MSEC && qAbs(msecdiff) > msecdiffallowed){
         add2dataHolder = (!myparams.lastPollCodes2send.contains(pollCode));//only if msec is bad
 
 
@@ -858,7 +956,7 @@ bool ModbusEncoderDecoder::isCachedDataAcceptable(const QVariantHash &lastHash, 
 
         //force zbyrator to poll
         if(verboseMode)
-            qDebug()  << "ModbusEncoderDecoder::isCachedDataAcceptable msec "
+            qDebug()  << "ModbusEncoderDecoder::isCachedDataAcceptable msec " << msecdiffallowed
                       << QDateTime::fromMSecsSinceEpoch(currmsec).toString("yyyy-MM-dd hh:mm:ss.zzz")
                       << QDateTime::fromMSecsSinceEpoch(msec).toString("yyyy-MM-dd hh:mm:ss.zzz");
 
@@ -866,10 +964,13 @@ bool ModbusEncoderDecoder::isCachedDataAcceptable(const QVariantHash &lastHash, 
             qDebug()  << "ModbusEncoderDecoder::isCachedDataAcceptable msec diff " << msecdiff << msecdiffallowed << add2dataHolder << lastHash;
 
 
-        return false;
+        return false;//values must be updated, so tell zbyrator-bbb to start poll
     }
 
     cachedDataHolderAnswers.remove(pollCode);//it must remove acceptable values
+
+    updateDataFromDataHolder(lastHash, pollCode);
+
 
     if(myparams.lastPollCodes2send.contains(pollCode)){
         //wtf??? it can't be, but check to be sure
@@ -877,12 +978,39 @@ bool ModbusEncoderDecoder::isCachedDataAcceptable(const QVariantHash &lastHash, 
             qDebug()  << "ModbusEncoderDecoder::isCachedDataAcceptable " << lastHash << myparams.lastPollCodes2send;
         return true;//say that everything is fine
     }
-
-
-
     myparams.lastPollCodes2send.append(pollCode);
 
-    myparams.dataFromDataHolder.insert(pollCode, h);
+
+
+    return true;
+}
+
+bool ModbusEncoderDecoder::isCachedDataAddressAcceptable(const QVariantHash &h)
+{
+
+    const QString sn = myparams.myDevices.value(myparams.lastmessageparams.devaddress).sn; //if empty ignore, in other case use sn to find data
+    const QString snCached = h.value("SN").toString();
+
+    if(!sn.isEmpty()){ //if SN is set, it can be done only in Modbus Devices Table 18.95
+
+        return (sn == snCached);
+//        return false;
+
+    }
+
+
+
+
+
+    const QString ni = myparams.myDevices.value(myparams.lastmessageparams.devaddress).ni;//, QString::number(myparams.lastmessageparams.devaddress));
+
+    const QString niCached = h.value("NI").toString();
+
+//    const QString nimapped = myparams.listDevAddr2meterNI.value(myparams.lastmessageparams.devaddress, QString::number(myparams.lastmessageparams.devaddress));
+
+    if(ni != niCached)
+        return false;
+
 
 
     return true;
@@ -966,6 +1094,7 @@ void ModbusEncoderDecoder::resetLastMessageVariables()
 
     emit stopTmrProcessing();
 
+
     myparams.isDecoderBusy = false;
     myparams.lastmessageparams = ModbusDecodedParams();
     myparams.lastPollCodes2receive.clear();
@@ -993,7 +1122,7 @@ void ModbusEncoderDecoder::fillTheAnswerHash(const quint8 &pollCode, QMap<quint1
     case POLL_CODE_READ_TOTAL   : l = getTotalEnergyAnswer(h)   ; startRegister = MYDECODER_READF_FIRST_EREGISTER; break;
     case POLL_CODE_WTR_TOTAL    : l = getTotalWaterAnswer(h)    ; startRegister = MYDECODER_READF_FIRST_WREGISTER; break;
     case POLL_CODE_GAS_TOTAL    : l = getTotalGasAnswer(h)      ; startRegister = MYDECODER_READF_FIRST_GREGISTER; break;
-    case POLL_CODE_PLSS_TOTAL   : l = getTotalPulsesAnswer(h)   ; startRegister = MYDECODER_READF_FIRST_PREGISTER; break;
+    case POLL_CODE_PLSS_TOTAL   : l = getTotalPulsesAnswer(myparams.dataFromDataHolder.values(pollCode))   ; startRegister = MYDECODER_READF_FIRST_PREGISTER; break;
 
 
     }
@@ -1015,17 +1144,33 @@ void ModbusEncoderDecoder::startZbyratorPoll(const QString &messagetag)
     if(myparams.zbyratoRmessageTags.contains(messagetag) || !myparams.messageTags.contains(messagetag))
         return;//it was done before
 
-    const quint8 pollCode = myparams.messageTags.value(messagetag);
+    quint8 pollCode = myparams.messageTags.value(messagetag);
 
     myparams.zbyratoRmessageTags.insert(messagetag, pollCode);
 
     QString ni = myparams.myDevices.value(myparams.lastmessageparams.devaddress).ni;//, QString::number(myparams.lastmessageparams.devaddress));
     QString sn = myparams.myDevices.value(myparams.lastmessageparams.devaddress).sn; //if empty ignore, in other case use sn to find data
 
+    if(!sn.isEmpty() && myparams.myPulseMeterNIs.contains(ni)){
+        //if !sn.isEmpty check the device type, because it can be a virtual device, so the poll code can be different for pulse meters
+//        myparams.myDevices.value(myparams.lastmessageparams.devaddress).
+            //it is a pulse meter, that works as other meter
+
+        const quint8 pcSimple = (pollCode%20);
+
+        if(pcSimple != UC_METER_PULSE){ //in other case the pollCode is for pulse meter, so nothing has to be changed
+            pollCode = pollCode - pcSimple + UC_METER_PULSE;//poll this device as a pulse meter
+
+            if(verboseMode)
+                qDebug()  << "ModbusEncoderDecoder::startZbyratorPoll pollCode correction " << int(pollCode) << int(pcSimple) ;
+        }
+
+    }
+
     if(verboseMode)
         qDebug()  << "ModbusEncoderDecoder::startZbyratorPoll " << ni << sn << int(pollCode) << QString::number(myparams.lastmessageparams.devaddress) << messagetag;
 
-    emit sendCommand2zbyrator(pollCode, ni, sn, messagetag);
+    emit sendCommand2zbyratorWOObjectTag(pollCode, ni, messagetag);
 }
 
 //--------------------------------------------------------------------
@@ -1060,9 +1205,9 @@ ModbusAnswerList ModbusEncoderDecoder::getTotalGasAnswer(const QVariantHash &h)
 
 //--------------------------------------------------------------------
 
-ModbusAnswerList ModbusEncoderDecoder::getTotalPulsesAnswer(const QVariantHash &h)
+ModbusAnswerList ModbusEncoderDecoder::getTotalPulsesAnswer(const QList<QVariantHash> &listHash)
 {
-    return ModbusPulseMeterHelper::getTotalPulseAnswer(h.value("data").toHash(), verboseMode);
+    return ModbusPulseMeterHelper::getTotalPulseAnswer(listHash, verboseMode);// h.value("data").toHash(), verboseMode);
 
 }
 

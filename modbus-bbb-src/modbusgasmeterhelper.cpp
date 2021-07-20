@@ -2,6 +2,7 @@
 
 
 
+
 //-------------------------------------------------------------------------------------------
 
 QList<quint8> ModbusGasMeterHelper::getAcceptableGMeterNis()

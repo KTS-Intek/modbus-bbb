@@ -51,7 +51,7 @@ void ModbusResourceManager::restartApp()
 
 void ModbusResourceManager::onLogingServiceIsReady()
 {
-    QThread::sleep(10);
+    QThread::sleep(1);
     createMatildaLSClient();
     createDataHolderClient();
     createTcpServer();

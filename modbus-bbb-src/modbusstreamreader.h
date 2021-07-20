@@ -48,14 +48,15 @@ public slots:
 
 
     //send to matidla local socket
-    void onSendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag);
+    void sendCommand2zbyratorWOObjectTag(quint16 pollCode, QString ni, QString messagetag);
+
 
 
 
 //matilda local socket answer
     void onCommandReceived(QString messagetag, QString objecttag, bool isok, QString messageerror);
 
-    void dataFromCache(QString messagetag, QString objecttag, QVariantHash lastHash);
+    void dataFromCache(QString messagetag, QString objecttag, QVariantList lastData);
 
 
     void onMatildaCommandReceived(QString messagetag, QString objecttag, bool isok, QString messageerror);

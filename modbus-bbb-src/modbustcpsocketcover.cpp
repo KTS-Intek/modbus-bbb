@@ -36,7 +36,7 @@ void ModbusTCPSocketCover::reloadSettings()
 
         if(!NetworkConvertHelper::isIpGood(remaddr, settings.IPs)){
 
-            emit currentOperation(tr("IP '%1' is not in the allowed list").arg(mysett.remip));
+            emit currentOperation(tr("IP '%1' is not in the allowed list").arg(remaddr));
             QTimer::singleShot(11, this, SLOT(deleteLater()));
             return ;
         }

@@ -74,10 +74,20 @@ QList<quint32> ModbusMeterHelper::getMeterValuesUIN32(const QStringList &listKey
 
 int ModbusMeterHelper::getAcceptableMeterNis(const QVariantList &l, ModbusVirtualDevices &vdevs)
 {
-
+    QStringList listMeterNIs;
+    return getAcceptableMeterNisExt(l, vdevs, listMeterNIs);
+}
+//-------------------------------------------------------------------------------------------
+int ModbusMeterHelper::getAcceptableMeterNisExt(const QVariantList &l, ModbusVirtualDevices &vdevs, QStringList &listMeterNIs)
+{
     int counter = 0;
     for(int i = 0, imax = l.size(); i < imax; i++){
         const QVariantHash hash = l.at(i).toHash();
+
+        const QString ni = hash.value("NI").toString();
+        if(ni.isEmpty())
+            continue;
+        listMeterNIs.append(ni);
 
         OneModbusVirtualDevice onedev;
         const quint8 add = meterAddressFromHash(hash, onedev);

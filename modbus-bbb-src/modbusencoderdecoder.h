@@ -49,8 +49,11 @@ public:
 
     QString generateQuickPollLine(const QByteArray &readArr);
 
+
+    bool isItAPulseMeterPollCode(const quint8 &pollCode);
+
 signals:
-    void sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
+    void sendCommand2zbyratorWOObjectTag(quint16 pollCode, QString ni, QString messagetag);
 
     void sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString devID, bool useSn4devID, QString messagetag);
 
@@ -93,7 +96,7 @@ public slots:
 
     void onDataHolderCommandReceived(QString messagetag, bool isok, QString messageerror);
 
-    void dataFromCache(QString messagetag, QVariantHash lastHash);
+    void dataFromCache(QString messagetag, QVariantList lastData);
 
     void onMatildaCommandReceived(QString messagetag, bool isok, QString messageerror);
 
@@ -104,6 +107,11 @@ public slots:
 
     void onModbusSettingsChanged();
 
+    void updateDataFromDataHolder(const QVariantHash &lastHash, const quint8 &pollCode);
+
+    void updateCachedDataHolderAnswers(const QVariantHash &lastHash, const quint8 &pollCode);
+
+    void updateHash(QHash<quint8,  QVariantHash > &h, const QVariantHash &lastHash, const quint8 &pollCode);
 
 private:
 
@@ -133,6 +141,8 @@ private:
 
     bool isCachedDataAcceptable(const QVariantHash &lastHash, const bool &ignoreMsec, bool &add2dataHolder);
 
+    bool isCachedDataAddressAcceptable(const QVariantHash &h);
+
     bool checkSendDataToTheMaster();
 
     void sendDataToTheMaster();
@@ -150,7 +160,7 @@ private:
 
     ModbusAnswerList getTotalWaterAnswer(const QVariantHash &h);
     ModbusAnswerList getTotalGasAnswer(const QVariantHash &h);
-    ModbusAnswerList getTotalPulsesAnswer(const QVariantHash &h);
+    ModbusAnswerList getTotalPulsesAnswer(const QList<QVariantHash> &listHash);
 
 
     struct MyDecoderParams
@@ -162,6 +172,7 @@ private:
         bool isModbusMasterSide;//it must false here
 
         ModbusVirtualDevices myDevices;
+        QStringList myPulseMeterNIs;
 
         ModbusGeneralSettings generalSettings;
 //        QList<quint8> listMeterNIs;//only acceptable values
@@ -190,7 +201,7 @@ private:
         bool isWaitingDataHolder;// it is going to sent a request to Data Holder, it timeout occurs start poll
 
 
-        QHash<quint8, QVariantHash> dataFromDataHolder;//data buffer
+        QHash<quint8, QVariantHash> dataFromDataHolder;//data buffer, it is used in fillTheAnswerHash, it has only acceptable data
 
         qint64 msecOfTheRequest;
 
@@ -210,7 +221,7 @@ private:
         {}
     } myparams;
 
-    QHash<quint8,  QVariantHash > cachedDataHolderAnswers;//only for one device
+    QHash<quint8,  QVariantHash > cachedDataHolderAnswers;//only for one device, all data
 
 };
 

@@ -51,7 +51,6 @@ void ModbusSerialPortCover::onThreadStarted()
 
     connect(this, &ModbusSerialPortCover::killAllObjects, streamr, &ModbusStreamReader::deleteLater);
 
-    connect(streamr, &ModbusStreamReader::onSerialPortName, this, &ModbusSerialPortCover::onSerialPortName);
 
     if(mystate.verboseMode)
         connect(streamr, &ModbusStreamReader::currentOperation, this, &ModbusSerialPortCover::currentOperation);
@@ -88,7 +87,7 @@ void ModbusSerialPortCover::reconnect2serialPort()
 
     QString errstr;
 
-    const auto interfaceSettings = ModbusSettingsLoader::getInterafaceSettMap(mystate.serialSettings, errstr);
+    const auto interfaceSettings = ModbusSettingsLoader::getInterafaceSettMap(mystate.serialSettings.serialport, errstr);
 
     if(!errstr.isEmpty()){
         emit append2log(QString("Modbus RTU is disabled, %1").arg(errstr));
@@ -111,7 +110,7 @@ void ModbusSerialPortCover::reconnect2serialPort()
     if(streamr->openSerialPort(true, connSett.prdvtrAddr, connSett.prdvtrPort, connSett.uarts, connSett.databits, connSett.stopbits, connSett.parity, connSett.flowcontrol)){
         //const qint8 &databits, const qint8 &stopbits, const qint8 &parity, const qint8 &flowcontrol
         if(streamr->verboseMode)
-            qDebug() << "ModbusSerialPortCover port is opened " << mystate.prdvtrAddr;
+            qDebug() << "ModbusSerialPortCover port is opened " << connSett.prdvtrAddr;
         //if everything is fine, streamr tells it
         //        emit append2log(QString("%1 is opened, parity=%3").arg(mystate.prdvtrAddr).arg(int(streamr->serialPort->parity())));
         onSerialPortEverythingIsFine();
@@ -229,8 +228,8 @@ bool ModbusSerialPortCover::checkReloadSerialPortSettings()
 
 
     QString errstr;
-    const auto serialpOld = Conf2modem::convertFromVarMap(ModbusSettingsLoader::getInterafaceSettMap(mystate.serialSettings, errstr));
-    const auto serialpNew = Conf2modem::convertFromVarMap(ModbusSettingsLoader::getInterafaceSettMap(mystate.serialSettings, errstr));
+    const auto serialpOld = Conf2modem::convertFromVarMap(ModbusSettingsLoader::getInterafaceSettMap(mystate.serialSettings.serialport, errstr));
+    const auto serialpNew = Conf2modem::convertFromVarMap(ModbusSettingsLoader::getInterafaceSettMap(mystate.serialSettings.serialport, errstr));
 
 
     return (serialpOld.ifaceParams != serialpNew.ifaceParams); //it checks all uart settings

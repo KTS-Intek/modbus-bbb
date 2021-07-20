@@ -111,8 +111,8 @@ void ModbusTCPServer::startServer()
 
 void ModbusTCPServer::onConfigChanged(quint16 command, QVariant datavar)
 {
-    if(verboseMode)
-        qDebug() << "========================== ModbusTCPSocketCover::onConfigChanged " << command << datavar << socket->peerAddress().toString();
+    if(myserverstate.verboseMode)
+        qDebug() << "========================== ModbusTCPServer::onConfigChanged " << command << datavar ;
 
     if(command == MTD_EXT_COMMAND_RELOAD_SETT || command == MTD_EXT_CUSTOM_COMMAND_0){
 
@@ -128,6 +128,10 @@ void ModbusTCPServer::reloadSettings()
 
     const bool allowTcpServer = myserverstate.allowTcpServer;
     myserverstate.allowTcpServer = (tcpMode != 0);
+
+
+    if(myserverstate.verboseMode)
+        qDebug() << "========================== ModbusTCPServer::reloadSettings " << tcpMode << allowTcpServer << myserverstate.allowTcpServer << isListening();
 
     if(myserverstate.allowTcpServer){
         if(!isListening()){

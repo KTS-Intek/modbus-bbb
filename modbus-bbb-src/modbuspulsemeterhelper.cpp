@@ -9,25 +9,43 @@
 
 //-------------------------------------------------------------------------------------------
 
-int ModbusPulseMeterHelper::getAcceptablePMeterNis(ModbusVirtualDevices &vdevs)
+int ModbusPulseMeterHelper::getAcceptablePMeterNis(ModbusVirtualDevices &vdevs, QStringList &listMetersNIs)
 {
+
 
     QString errstr;
     const QVariantList l = CompressFileHelper::readCompressedVarListFromTheFile(PathsResolver::path2pulseMetersList(), errstr);
 
-    return getAcceptableMeterNis(l, vdevs);
+
+
+    return getAcceptableMeterNisExt(l, vdevs, listMetersNIs);
 
 
 }
 
 //-------------------------------------------------------------------------------------------
 
-ModbusAnswerList ModbusPulseMeterHelper::getTotalPulseAnswer(const QVariantHash &hdata, const bool &verboseMode)
+ModbusAnswerList ModbusPulseMeterHelper::getTotalPulseAnswer(const QList<QVariantHash> &listHash, const bool &verboseMode)
 {
     //tvlu_0 - 42201-202
     //tvlu_1 - 42203-204
     //tvlu_2 - 42205-206
     //tvlu_3 - 42207-208
+
+//    ("chnnl", QVariant(QString, "0")
+    QVariantHash hdata;
+
+    for(int i = 0, imax = listHash.size(); i < imax; i++){
+
+
+        const QVariantHash h = listHash.at(i).value("data").toHash();
+        const QString chnnl = h.value("chnnl").toString();
+
+        if(verboseMode)
+              qDebug()  << "Pulse table i " << i << chnnl << h.value("tvlu") << h  ;
+
+        hdata.insert(QString("tvlu_%1").arg(chnnl), h.value("tvlu"));
+    }
 
     QList<qreal> energytable;
     QStringList tablenames;
@@ -41,7 +59,7 @@ ModbusAnswerList ModbusPulseMeterHelper::getTotalPulseAnswer(const QVariantHash 
     }
 
     if(verboseMode){
-        qDebug()  << "Pulse table  " << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
+        qDebug()  << "Pulse table  " << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz") << listHash.size() << hdata;
         qDebug()  << " ----------------------------- ";
         for(int i = 0, imax = energytable.size(); i < imax; i++){
             qDebug()  << tablenames.at(i) <<  QString::number(energytable.at(i), 'f', 3);

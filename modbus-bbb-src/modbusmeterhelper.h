@@ -3,6 +3,9 @@
 
 
 #include <QVariantHash>
+#include <QDateTime>
+#include <QDebug>
+
 #include "modbusencoderdecodertypes.h"
 #include "dataholdertypes.h"
 #include "modbustypes.h"
@@ -41,6 +44,7 @@ public:
 
 
     static int getAcceptableMeterNis(const QVariantList &l, ModbusVirtualDevices &vdevs);
+    static int getAcceptableMeterNisExt(const QVariantList &l, ModbusVirtualDevices &vdevs, QStringList &listMeterNIs);
 
     static quint8 meterAddressFromHash(const QVariantHash &hash, OneModbusVirtualDevice &onedev);
 

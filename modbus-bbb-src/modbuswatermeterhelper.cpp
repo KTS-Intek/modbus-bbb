@@ -43,7 +43,7 @@ ModbusAnswerList ModbusWaterMeterHelper::getTotalWaterAnswer(const QVariantHash 
     }
 
     if(verboseMode){
-        qDebug()  << "Water table  " << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
+        qDebug()  << "Water table  " << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz") ;
         qDebug()  << " ----------------------------- ";
         for(int i = 0, imax = energytable.size(); i < imax; i++){
             qDebug()  << tablenames.at(i) <<  QString::number(energytable.at(i), 'f', 3);
@@ -61,7 +61,7 @@ ModbusAnswerList ModbusWaterMeterHelper::getTotalWaterAnswer(const QVariantHash 
 
 QList<quint32> ModbusWaterMeterHelper::getWaterValues(const QVariantHash &hdata, QList<qreal> &realv, QStringList &tablekeys)
 {
-    return getMeterValuesUIN32(QString("TOW T1W T2W T3W T4W CW").split(" ", QString::SkipEmptyParts), 0.1, hdata, realv, tablekeys);
+    return getMeterValuesUIN32(QString("T0W T1W T2W T3W T4W CW").split(" ", QString::SkipEmptyParts), 0.1, hdata, realv, tablekeys);
 
 }
 

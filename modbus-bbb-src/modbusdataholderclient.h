@@ -24,7 +24,7 @@ public:
 signals:
     void onCommandReceived(QString messagetag, QString objecttag, bool isok, QString messageerror);
 
-    void dataFromCache(QString messagetag, QString objecttag, QVariantHash lastHash);
+    void dataFromCache(QString messagetag, QString objecttag, QVariantList lastData);
 
 public slots:
     void onThreadStartedL0();

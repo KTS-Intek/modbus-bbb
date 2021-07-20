@@ -29,11 +29,10 @@ void ModbusStreamReader::createObjects()
         lastConnectionType =IFACECONNTYPE_UART;
         setIgnoreUartChecks(true);
 
-        connect(modbusprocessor, &ModbusEncoderDecoder::onSerialPortName, this, &ModbusStreamReader::onSerialPortName);
 
     }
 
-    connect(modbusprocessor, &ModbusEncoderDecoder::sendCommand2zbyrator, this, &ModbusStreamReader::onSendCommand2zbyrator);
+    connect(modbusprocessor, &ModbusEncoderDecoder::sendCommand2zbyratorWOObjectTag, this, &ModbusStreamReader::sendCommand2zbyratorWOObjectTag);
     connect(modbusprocessor, &ModbusEncoderDecoder::sendCommand2dataHolderWOObjectTag, this, &ModbusStreamReader::sendCommand2dataHolderWOObjectTag);
 
     connect(modbusprocessor, &ModbusEncoderDecoder::onData2write, this, &ModbusStreamReader::onData2write);
@@ -55,9 +54,10 @@ void ModbusStreamReader::sendCommand2dataHolderWOObjectTag(quint16 pollCode, QSt
 
 //----------------------------------------------------------------------
 
-void ModbusStreamReader::onSendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag)
+void ModbusStreamReader::sendCommand2zbyratorWOObjectTag(quint16 pollCode, QString ni, QString messagetag)
 {
     emit sendCommand2zbyrator(pollCode, ni, messagetag, myparams.objecttag);
+
 }
 
 //----------------------------------------------------------------------
@@ -73,10 +73,11 @@ void ModbusStreamReader::onCommandReceived(QString messagetag, QString objecttag
 
 //----------------------------------------------------------------------
 
-void ModbusStreamReader::dataFromCache(QString messagetag, QString objecttag, QVariantHash lastHash)
+void ModbusStreamReader::dataFromCache(QString messagetag, QString objecttag, QVariantList lastData)
 {
+
     if(objecttag == myparams.objecttag){
-        modbusprocessor->dataFromCache(messagetag, lastHash);
+        modbusprocessor->dataFromCache(messagetag, lastData);
 
     }
 }

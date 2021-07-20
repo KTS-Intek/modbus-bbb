@@ -30,7 +30,7 @@ signals:
     //matilda local socket answer
     void onCommandReceived(QString messagetag, QString  objecttag, bool isok, QString messageerror);
 
-    void dataFromCache(QString messagetag, QString objecttag, QVariantHash lastHash);
+    void dataFromCache(QString messagetag, QString objecttag, QVariantList lastData);
 
 
     void onMatildaCommandReceived(QString messagetag, QString objecttag, bool isok, QString messageerror);

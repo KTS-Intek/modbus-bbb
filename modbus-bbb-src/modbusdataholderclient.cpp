@@ -119,11 +119,23 @@ void ModbusDataHolderClient::onDATAHOLDER_GET_POLLDATA_EXT(const QVariantHash &h
 
     if(hash.contains("varlist")){
         const QVariantList l = hash.value("varlist").toList();
+        //varlist pulse meters have different values in few rows, so send varlist instead of the last varlist value
+        //varlist can be empty if there is no data or request was wrong, so send
         if(!l.isEmpty()){
-            emit dataFromCache(messagetag, objecttag, l.last().toHash());//It contains NI and SN (devID or additionalID)
+
+            if(verboseMode){
+                for(int i = 0, imax = l.size(); i < imax; i++)
+                    qDebug() << "onDATAHOLDER_GET_POLLDATA_EXT " << i << l.at(i).toHash();
+            }
+
+            emit dataFromCache(messagetag, objecttag, l);//It contains NI and SN (devID or additionalID)
             return;
         }
-        emit onCommandReceived(messagetag, objecttag, false, QString("Empty object is received, 'varlist'"));
+//        QVariantHash h;
+//        QVariantList ll;
+//        ll.append(h);
+        emit dataFromCache(messagetag, objecttag, l);
+//        emit onCommandReceived(messagetag, objecttag, false, QString("Empty object is received, 'varlist'"));
         return;
 
     }
