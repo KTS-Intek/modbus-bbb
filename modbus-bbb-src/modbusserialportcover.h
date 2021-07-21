@@ -17,7 +17,8 @@ public:
 signals:
 
     //to the resource manager
-    void append2log(QString message);
+    void append2log(qint64 msec, QString message);
+
     void restartApp();
 
 
@@ -67,6 +68,7 @@ public slots:
 
     void currentOperation(QString messageStrr);
 
+    void append2logSmpl( QString message);
 
 
     void restartReConnectTimer();

@@ -35,6 +35,9 @@ void ModbusSerialPortCover::onThreadStarted()
     connect(this, &ModbusSerialPortCover::onConnectionUp, tmrReconnect, &QTimer::stop);
 
 
+//    connect(streamr, &ModbusStreamReader::need2closeSerialPort, [=]{
+//        streamr->closeDevice();
+//    });
 
     connect(streamr, &ModbusStreamReader::onConnectionClosed, this, &ModbusSerialPortCover::restartReConnectTimer);
     connect(streamr, &ModbusStreamReader::onConnectionDown, this, &ModbusSerialPortCover::restartReConnectTimer);
@@ -55,7 +58,7 @@ void ModbusSerialPortCover::onThreadStarted()
     if(mystate.verboseMode)
         connect(streamr, &ModbusStreamReader::currentOperation, this, &ModbusSerialPortCover::currentOperation);
 
-    connect(streamr, &ModbusStreamReader::currentOperation, this, &ModbusSerialPortCover::append2log);
+    connect(streamr, &ModbusStreamReader::currentOperation, this, &ModbusSerialPortCover::append2logSmpl);
 
     streamr->createObjects();
 
@@ -81,7 +84,7 @@ void ModbusSerialPortCover::onThreadStarted()
 void ModbusSerialPortCover::reconnect2serialPort()
 {
     if(!mystate.serialSettings.enRTU){
-        emit append2log(QString("Modbus RTU is disabled"));
+        append2logSmpl(QString("Modbus RTU is disabled"));
         return;
     }
 
@@ -90,7 +93,7 @@ void ModbusSerialPortCover::reconnect2serialPort()
     const auto interfaceSettings = ModbusSettingsLoader::getInterafaceSettMap(mystate.serialSettings.serialport, errstr);
 
     if(!errstr.isEmpty()){
-        emit append2log(QString("Modbus RTU is disabled, %1").arg(errstr));
+        append2logSmpl(QString("Modbus RTU is disabled, %1").arg(errstr));
         onSerialPortErrorHappened();
         return;
     }
@@ -102,7 +105,7 @@ void ModbusSerialPortCover::reconnect2serialPort()
     streamr->setIgnoreUartChecks(true);
 
 
-    emit append2log(QString("%1 is going to be opened").arg(serialp.ifaceParams));
+    append2logSmpl(QString("%1 is going to be opened").arg(serialp.ifaceParams.simplified()));
 
     //const bool &workWithoutAPI, const QString &portName, const qint32 &baudRate, const QStringList &uarts, const qint8 &databits, const qint8 &stopbits, const qint8 &parity, const qint8 &flowcontrol)
 
@@ -112,7 +115,7 @@ void ModbusSerialPortCover::reconnect2serialPort()
         if(streamr->verboseMode)
             qDebug() << "ModbusSerialPortCover port is opened " << connSett.prdvtrAddr;
         //if everything is fine, streamr tells it
-        //        emit append2log(QString("%1 is opened, parity=%3").arg(mystate.prdvtrAddr).arg(int(streamr->serialPort->parity())));
+        //        append2logSmpl(QString("%1 is opened, parity=%3").arg(mystate.prdvtrAddr).arg(int(streamr->serialPort->parity())));
         onSerialPortEverythingIsFine();
         return;
     }
@@ -124,19 +127,19 @@ void ModbusSerialPortCover::reconnect2serialPort()
 
 void ModbusSerialPortCover::reloadSettings()
 {
-    //    emit append2log(QString("%1, ModbusSerialPortCover::reloadSettings").arg(mystate.portName));
+    //    append2logSmpl(QString("%1, ModbusSerialPortCover::reloadSettings").arg(mystate.portName));
 
 
     mystate.serialOpentCounter = 0;//reset the counter
 
     streamr->modbusprocessor->reloadAllSettings();
-    emit append2log(QString("Updating serial port settings"));
+    append2logSmpl(QString("Updating serial port settings"));
 
     if(!checkReloadSerialPortSettings()){
-        emit append2log(QString("serial port settings: nothing has changed"));
+        append2logSmpl(QString("serial port settings: nothing has changed"));
         return; //port settings are the same
     }
-//    emit append2log(QString("serial port settings: nothing has changed"));
+//    append2logSmpl(QString("serial port settings: nothing has changed"));
 
     streamr->closeDevice();
 
@@ -156,6 +159,11 @@ void ModbusSerialPortCover::currentOperation(QString messageStrr)
 
     qDebug() << "ModbusSerialPortCover " << messageStrr;
 
+}
+
+void ModbusSerialPortCover::append2logSmpl(QString message)
+{
+    emit append2log(QDateTime::currentMSecsSinceEpoch(), message);
 }
 
 
@@ -209,7 +217,7 @@ void ModbusSerialPortCover::onSerialPortErrorHappened()
 void ModbusSerialPortCover::onSerialPortEverythingIsFine()
 {
     if(mystate.serialOpentCounter > 0)
-        emit append2log(QString("The self-destruct counter was %1").arg(int(mystate.serialOpentCounter)));
+        append2logSmpl(QString("The self-destruct counter was %1").arg(int(mystate.serialOpentCounter)));
     mystate.serialOpentCounter = 0;
 }
 
@@ -228,7 +236,7 @@ bool ModbusSerialPortCover::checkReloadSerialPortSettings()
 
 
     QString errstr;
-    const auto serialpOld = Conf2modem::convertFromVarMap(ModbusSettingsLoader::getInterafaceSettMap(mystate.serialSettings.serialport, errstr));
+    const auto serialpOld = Conf2modem::convertFromVarMap(ModbusSettingsLoader::getInterafaceSettMap(serialSettingsOld.serialport, errstr));
     const auto serialpNew = Conf2modem::convertFromVarMap(ModbusSettingsLoader::getInterafaceSettMap(mystate.serialSettings.serialport, errstr));
 
 

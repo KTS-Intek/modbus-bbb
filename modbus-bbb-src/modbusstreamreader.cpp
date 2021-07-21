@@ -28,6 +28,7 @@ void ModbusStreamReader::createObjects()
         connect(serialPort, &QSerialPort::readyRead, this, &ModbusStreamReader::mReadyReadUART);
         lastConnectionType =IFACECONNTYPE_UART;
         setIgnoreUartChecks(true);
+        connect(this, SIGNAL(detectedDisconnectedSerialPort()), this, SLOT(closeSerialPort()));
 
 
     }

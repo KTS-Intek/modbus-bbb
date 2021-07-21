@@ -60,9 +60,10 @@ void ModbusResourceManager::onLogingServiceIsReady()
 
 //--------------------------------------------------------------------------------
 
-void ModbusResourceManager::append2logSlot(QString message)
+void ModbusResourceManager::append2logSlot(qint64 msec, QString message)
 {
-    emit appendLogDataLine("evnts", message, "\n", 500);
+
+    emit appendLogDataLine("evnts", QString("%1 %2").arg(QDateTime::fromMSecsSinceEpoch(msec).toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz t")).arg(message), "\n", 500);
 }
 
 //--------------------------------------------------------------------------------

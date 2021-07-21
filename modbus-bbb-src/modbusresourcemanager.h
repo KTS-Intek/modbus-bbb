@@ -18,7 +18,7 @@ public:
 signals:
     void killAllAndDie();
 
-    void append2log(QString message);
+    void append2log(qint64 msec, QString message);
 
 
 
@@ -61,7 +61,7 @@ public slots:
 
 
 
-    void append2logSlot(QString message);
+    void append2logSlot(qint64 msec, QString message);
 
     void appendUart2logSlot(QString lines);
 

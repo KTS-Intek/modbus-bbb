@@ -93,7 +93,7 @@ void ModbusTCPServer::startServer()
         return;
     }
 
-    emit append2log(QString("Failed to start tcp server, %1 ").arg(errorString()));
+    append2logSmpl(QString("Failed to start tcp server, %1 ").arg(errorString()));
 
     if(myserverstate.verboseMode)
         qDebug() << "ModbusTCPServer::startServer() failed " << errorString()  << int(myserverstate.serverStartCounter);
@@ -107,6 +107,11 @@ void ModbusTCPServer::startServer()
     }
 //    QTimer::singlShot(1111, this, SLOT(startServer()));
     emit restartTmrRestart();
+}
+
+void ModbusTCPServer::append2logSmpl(QString message)
+{
+    emit append2log(QDateTime::currentMSecsSinceEpoch(), message);
 }
 
 void ModbusTCPServer::onConfigChanged(quint16 command, QVariant datavar)
@@ -136,7 +141,7 @@ void ModbusTCPServer::reloadSettings()
     if(myserverstate.allowTcpServer){
         if(!isListening()){
             if(allowTcpServer != myserverstate.allowTcpServer){
-                emit append2log(QString("Modbus tcp server is enabled"));
+                append2logSmpl(QString("Modbus tcp server is enabled"));
                 myserverstate.serverStartCounter = 0;
             }
 //            startServer();
@@ -147,7 +152,7 @@ void ModbusTCPServer::reloadSettings()
     }else{
 
         if(isListening()){
-            emit append2log(QString("Modbus tcp server is disabled"));
+            append2logSmpl(QString("Modbus tcp server is disabled"));
             stopServerNow();
             return;
         }
@@ -192,6 +197,8 @@ void ModbusTCPServer::incomingConnection(qintptr handle)
 
     connect(streamr, &ModbusTCPSocketCover::sendCommand2dataHolder, this, &ModbusTCPServer::sendCommand2dataHolder);
     connect(streamr, &ModbusTCPSocketCover::sendCommand2zbyrator, this, &ModbusTCPServer::sendCommand2zbyrator);
+
+    connect(streamr, &ModbusTCPSocketCover::currentOperation, this, &ModbusTCPServer::append2logSmpl);
 
     connect(this, &ModbusTCPServer::onCommandReceived, streamr, &ModbusTCPSocketCover::onCommandReceived);
     connect(this, &ModbusTCPServer::dataFromCache, streamr, &ModbusTCPSocketCover::dataFromCache);
