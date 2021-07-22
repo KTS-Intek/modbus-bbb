@@ -35,11 +35,19 @@ void ModbusTCPSocketCover::onDataReadWriteReal(QByteArray arr, QString ifaceName
     if(arr.isEmpty())
         return;
 
+    const auto len = arr.size();
     if(isRead){
-        theconnection.rb += arr.size();
+        theconnection.rb += len;
     }else{
-        theconnection.wb += arr.size();
+        theconnection.wb += len;
     }
+
+    if(len > 23){
+        theconnection.lastmessage = arr.left(23).toHex() ;
+        theconnection.lastmessage.append("...");
+    }else
+        theconnection.lastmessage = arr.toHex();
+
     sendTheLastConnectionState();
 }
 
@@ -52,6 +60,13 @@ void ModbusTCPSocketCover::setupTheConnectionStruct(const QString &conntype, con
     theconnection.conntype = conntype;
     theconnection.connid = connid;// "tcps";
     theconnection.msecstart = QDateTime::currentMSecsSinceEpoch();
+}
+
+void ModbusTCPSocketCover::closeTheConnectionAndSelfDestr()
+{
+    closeDevice();
+    onTheConnectionDown();
+    deleteLater();
 }
 
 void ModbusTCPSocketCover::onTheConnectionUp()
@@ -105,8 +120,10 @@ void ModbusTCPSocketCover::reloadSettings()
 
         if(!NetworkConvertHelper::isIpGood(remaddr, settings.IPs)){
 
+            theconnection.lastmessage = QString("This IP is not in the allowed list");
+
             emit currentOperation(tr("IP '%1' is not in the allowed list").arg(remaddr));
-            QTimer::singleShot(11, this, SLOT(deleteLater()));
+            QTimer::singleShot(11, this, SLOT(closeTheConnectionAndSelfDestr()));
             return ;
         }
     }

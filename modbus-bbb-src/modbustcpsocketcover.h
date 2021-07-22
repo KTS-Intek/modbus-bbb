@@ -26,6 +26,8 @@ public slots:
 
     void setupTheConnectionStruct(const QString &conntype, const QString &connid);
 
+    void closeTheConnectionAndSelfDestr();
+
     //from Ucon socket
         void onTheConnectionUp();
 
