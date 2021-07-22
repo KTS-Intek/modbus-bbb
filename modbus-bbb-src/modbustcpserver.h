@@ -46,6 +46,10 @@ signals:
 
     void restartTmrRestart();
 
+
+    void setServerInConnIdExtData(QString conntype, QString connid, qint64 msecstart, qint64 msecend, qint64 rb, qint64 wb, QString lastmessage); //список вхідних IP адрес (АйПі збиратора ігнорується)
+
+
 public slots:
     void onThrdStarted();
 
@@ -74,6 +78,7 @@ protected:
 
 private:
 
+    void createNetHistoryTable();
 
     struct MyTcpServerState
     {

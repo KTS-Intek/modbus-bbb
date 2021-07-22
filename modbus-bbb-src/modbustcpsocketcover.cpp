@@ -10,7 +10,12 @@
 ModbusTCPSocketCover::ModbusTCPSocketCover(const QString &objecttag, const bool &isTcpMode, const bool &verboseMode, QObject *parent) :
     ModbusStreamReader(objecttag, isTcpMode, verboseMode, parent)
 {
+    setTheIsServerSide();
+    connect(this, &ModbusTCPSocketCover::dataReadWriteReal, this, &ModbusTCPSocketCover::onDataReadWriteReal);
+//    connect(socket, &QTcpSocket::disconnected, this, onConnectionDown();)
+    connect(this, &ModbusTCPSocketCover::onConnectionDown, this, &ModbusTCPSocketCover::onTheConnectionDown);
 
+    connect(this, &ModbusTCPSocketCover::onConnectionClosed, this, &ModbusTCPSocketCover::onTheConnectionDown);
 }
 
 bool ModbusTCPSocketCover::isAble2setSocketDescriptor(qintptr handle, QString &lastError)
@@ -24,6 +29,62 @@ bool ModbusTCPSocketCover::isAble2setSocketDescriptor(qintptr handle, QString &l
     return true;
 }
 
+void ModbusTCPSocketCover::onDataReadWriteReal(QByteArray arr, QString ifaceName, bool isRead)
+{
+    Q_UNUSED(ifaceName);
+    if(arr.isEmpty())
+        return;
+
+    if(isRead){
+        theconnection.rb += arr.size();
+    }else{
+        theconnection.wb += arr.size();
+    }
+    sendTheLastConnectionState();
+}
+
+void ModbusTCPSocketCover::setupTheConnectionStruct(const QString &conntype, const QString &connid)
+{
+    if(!theconnection.connid.isEmpty() && !theconnection.conntype.isEmpty()){
+        onTheConnectionDown(); // in case of respawn
+    }
+
+    theconnection.conntype = conntype;
+    theconnection.connid = connid;// "tcps";
+    theconnection.msecstart = QDateTime::currentMSecsSinceEpoch();
+}
+
+void ModbusTCPSocketCover::onTheConnectionUp()
+{
+    theconnection.msecend = 0;
+    theconnection.msecstart = QDateTime::currentMSecsSinceEpoch();
+    sendTheLastConnectionState();
+}
+
+void ModbusTCPSocketCover::setTheIsServerSide()
+{
+    theconnection.isServerSide = true;//false by default
+
+}
+
+void ModbusTCPSocketCover::onTheConnectionDown()
+{
+
+    if(theconnection.msecend != 0)
+        return;
+    theconnection.msecend = QDateTime::currentMSecsSinceEpoch();
+    sendTheLastConnectionState();
+}
+
+void ModbusTCPSocketCover::sendTheLastConnectionState()
+{
+    if(theconnection.conntype.isEmpty())
+        return;
+
+    emit setServerInConnIdExtData(theconnection.conntype, theconnection.connid, theconnection.msecstart, theconnection.msecend, theconnection.rb, theconnection.wb, theconnection.lastmessage);
+
+}
+
 
 void ModbusTCPSocketCover::reloadSettings()
 {
@@ -33,6 +94,14 @@ void ModbusTCPSocketCover::reloadSettings()
     const ModbusTcpSettings settings = ModbusSettingsLoader::getModbusTcpSettings();
 
     if(!settings.IPs.isEmpty()){
+
+        if(theconnection.conntype.isEmpty()){
+            //it must enter here only once
+            setupTheConnectionStruct("tcps", ConnectionTableInSharedMemoryTypes::getConnid4tcpServerSocket(remaddr, socket->localPort(), socket->socketDescriptor()));
+            onTheConnectionUp();
+            setTheIsServerSide();
+            ifaceName = remaddr;
+        }
 
         if(!NetworkConvertHelper::isIpGood(remaddr, settings.IPs)){
 
@@ -50,6 +119,7 @@ void ModbusTCPSocketCover::reloadSettings()
 
     setTimeouts(settings.tcpTimeout, settings.tcpBlcokTimeout);
     setIgnoreUartChecks(true);
+
 
 
 }

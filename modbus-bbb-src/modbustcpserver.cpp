@@ -8,6 +8,11 @@
 #include "src/shared/ifacehelper.h"
 
 
+///[!] sharedmemory
+#include "src/shared/sharedmemohelper.h"
+#include "src/shared/connectiontableinsharedmemory.h"
+
+
 
 #include "moji_defy.h"
 
@@ -22,6 +27,8 @@ ModbusTCPServer::ModbusTCPServer(const bool &verboseMode, QObject *parent) : QTc
 
 void ModbusTCPServer::onThrdStarted()
 {
+    createNetHistoryTable();
+
     QTimer *tmrRestart = new QTimer(this);
     tmrRestart->setSingleShot(true);
     tmrRestart->setInterval(9999);
@@ -211,6 +218,7 @@ void ModbusTCPServer::incomingConnection(qintptr handle)
     connect(this, &ModbusTCPServer::reloadTcpSettings, streamr, &ModbusTCPSocketCover::reloadSettings);
 
 
+    connect(streamr, &ModbusTCPSocketCover::setServerInConnIdExtData, this, &ModbusTCPServer::setServerInConnIdExtData);
 
     IfaceHelper *ifceHlpr = new IfaceHelper(true, this);
     connect(ifceHlpr, &IfaceHelper::ifaceLogStr, this, &ModbusTCPServer::ifaceLogStr);
@@ -219,11 +227,32 @@ void ModbusTCPServer::incomingConnection(qintptr handle)
     if(streamr->socket->state() != QTcpSocket::ConnectedState){
         streamr->deleteLater();
     }else{
+
         streamr->createObjects();
         streamr->reloadSettings();
     }
 
 
+}
+
+//----------------------------------------------------------------------------
+
+void ModbusTCPServer::createNetHistoryTable()
+{
+    ConnectionTableInSharedMemory *writer = new ConnectionTableInSharedMemory(SharedMemoHelper::defModbusBBBServicesStateMemoName(), SharedMemoHelper::defModbusBBBServicesStateSemaName(),
+                                                                              2222, myserverstate.verboseMode);
+    QThread *t = new QThread;
+    writer->moveToThread(t);
+    t->setObjectName("ConnectionTableInSharedMemory");
+    connect(writer, SIGNAL(destroyed(QObject*)), t, SLOT(quit()));
+    connect(t, SIGNAL(finished()), t, SLOT(deleteLater()));
+    connect(t, SIGNAL(started()), writer, SLOT(onThreadStarted4table()));
+
+    connect(this, &ModbusTCPServer::setServerInConnIdExtData, writer, &ConnectionTableInSharedMemory::setServerInConnIdExtData);
+
+    connect(this, &ModbusTCPServer::killAllObjects, writer, &ConnectionTableInSharedMemory::kickOffNow);
+    connect(this, &ModbusTCPServer::stopAllSocket, writer, &ConnectionTableInSharedMemory::flushAllNow);
+    t->start();
 }
 //----------------------------------------------------------------------------
 
