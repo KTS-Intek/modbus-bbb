@@ -11,6 +11,7 @@
 #include "modbusgasmeterhelper.h"
 #include "modbuspulsemeterhelper.h"
 #include "modbussettingsloader.h"
+#include "modbusfireflydeviceshelper.h"
 
 #include <QtCore>
 
@@ -54,6 +55,9 @@ public:
 
 signals:
     void sendCommand2zbyratorWOObjectTag(quint16 pollCode, QString ni, QString messagetag);
+
+    void sendCommand2fireflyWOObjectTag(quint16 pollCode, QString ni, QString messagetag);
+
 
     void sendCommand2dataHolderWOObjectTag(quint16 pollCode, QString devID, bool useSn4devID, QString messagetag);
 
@@ -129,6 +133,10 @@ private:
 
     bool isPulseTotalRegister(const quint16 &startRegister);
 
+    bool isLcuDevStateRegister(const quint16 &startRegister);
+
+    bool isLcuGroupStateRegister(const quint16 &startRegister);
+
 
     void findData4theseRegister(const quint16 &startRegister, const quint16 &count);
 
@@ -152,7 +160,10 @@ private:
 
     void fillTheAnswerHash(const quint8 &pollCode, QMap<quint16, quint16> &mapRegisters);
 
+    void startPollSmart(const QString &messagetag);
+
     void startZbyratorPoll(const QString &messagetag);
+    void startFireflyPoll(const QString &messagetag);
 
 
     ModbusAnswerList getVoltageAnswer(const QVariantHash &h);
@@ -162,6 +173,8 @@ private:
     ModbusAnswerList getTotalGasAnswer(const QVariantHash &h);
     ModbusAnswerList getTotalPulsesAnswer(const QList<QVariantHash> &listHash);
 
+    ModbusAnswerList getLcuDevAnswer(const QVariantHash &h);
+    ModbusAnswerList getLcuGroupAnswer(const QVariantHash &h);
 
     struct MyDecoderParams
     {
@@ -208,6 +221,7 @@ private:
 
         QHash<QString,quint8> zbyratoRmessageTags;//I need it to verify the incomming messages
 
+        bool isFireflyMode;
 
         MyDecoderParams() :
             isDecoderBusy(false),
@@ -217,7 +231,8 @@ private:
 //            processingmsec(5555),//fucking com'x doesn't accept big timeout
             processintTimeoutCounter(0),
             messageCounter(0),
-            lastStartRegister(0), lastRegisterCount(0)
+            lastStartRegister(0), lastRegisterCount(0),
+            isFireflyMode(false)
         {}
     } myparams;
 

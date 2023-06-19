@@ -204,6 +204,7 @@ void ModbusTCPServer::incomingConnection(qintptr handle)
 
     connect(streamr, &ModbusTCPSocketCover::sendCommand2dataHolder, this, &ModbusTCPServer::sendCommand2dataHolder);
     connect(streamr, &ModbusTCPSocketCover::sendCommand2zbyrator, this, &ModbusTCPServer::sendCommand2zbyrator);
+    connect(streamr, &ModbusTCPSocketCover::sendCommand2firefly, this, &ModbusTCPServer::sendCommand2firefly);
 
     connect(streamr, &ModbusTCPSocketCover::currentOperation, this, &ModbusTCPServer::append2logSmpl);
 

@@ -24,6 +24,8 @@
 
 #define MYDECODER_TOTALPULSE_REGISTER_FIRST     43201
 
+#define MYDECODER_LCUGROUPSTATE_REGISTER_FIRST  44201
+#define MYDECODER_LCUDEVSTATE_REGISTER_FIRST    44401
 
 
 #define MYDECODER_READF_FIRST_VREGISTER MYDECODER_VOLTAGE_REGISTER_FIRST
@@ -42,6 +44,14 @@
 
 #define MYDECODER_READF_FIRST_PREGISTER MYDECODER_TOTALPULSE_REGISTER_FIRST
 #define MYDECODER_READF_LAST_PREGISTER  43208
+
+
+
+#define MYDECODER_READF_FIRST_LCUGREGISTER MYDECODER_LCUGROUPSTATE_REGISTER_FIRST
+#define MYDECODER_READF_LAST_LCUGREGISTER  44332
+
+#define MYDECODER_READF_FIRST_LCUDREGISTER MYDECODER_LCUDEVSTATE_REGISTER_FIRST
+#define MYDECODER_READF_LAST_LCUDREGISTER  44423
 
 //--------------------------------------------------------------------
 
@@ -473,7 +483,7 @@ void ModbusEncoderDecoder::onTmrDataHolderProcessingTimeOut()
 
             if(myparams.dataFromDataHolder.contains(pollCode))
                 continue;//I have data
-            startZbyratorPoll(messagetag);//It starts poll, if it didn't do it
+            startPollSmart(messagetag);//It starts poll, if it didn't do it
         }
 
 
@@ -506,7 +516,7 @@ void ModbusEncoderDecoder::onDataHolderCommandReceived(QString messagetag, bool 
         qDebug()  << "ModbusEncoderDecoder::onDataHolderCommandReceived failed " << isok << messagetag << messageerror;
     //force zbyrator to start poll, if It stil didn't do
 
-    startZbyratorPoll(messagetag);
+    startPollSmart(messagetag);
 
 }
 
@@ -519,6 +529,9 @@ void ModbusEncoderDecoder::dataFromCache(QString messagetag, QVariantList lastDa
         return;
 
     if(myparams.messageTags.contains(messagetag)){
+
+
+
         const qint64 currmsec = QDateTime::currentMSecsSinceEpoch();
 
         bool startZbyratorPollLater = false;
@@ -562,7 +575,7 @@ void ModbusEncoderDecoder::dataFromCache(QString messagetag, QVariantList lastDa
 
         if(lastData.isEmpty() || startZbyratorPollLater){
             //force zbyrator to poll
-            startZbyratorPoll(messagetag);
+            startPollSmart(messagetag);
             return;
         }
 
@@ -747,7 +760,9 @@ bool ModbusEncoderDecoder::isStartRegisterGood(const quint16 &startRegister)
             isEnergyRegister(startRegister) ||
             isWaterTotalRegister(startRegister) ||
             isGasTotalRegister(startRegister) ||
-            isPulseTotalRegister(startRegister));
+            isPulseTotalRegister(startRegister) ||
+            isLcuDevStateRegister(startRegister) ||
+            isLcuGroupStateRegister(startRegister));
 }
 
 //--------------------------------------------------------------------
@@ -790,6 +805,22 @@ bool ModbusEncoderDecoder::isPulseTotalRegister(const quint16 &startRegister)
 
 //--------------------------------------------------------------------
 
+bool ModbusEncoderDecoder::isLcuDevStateRegister(const quint16 &startRegister)
+{
+    return (startRegister >= MYDECODER_LCUDEVSTATE_REGISTER_FIRST && startRegister <=  MYDECODER_READF_LAST_LCUDREGISTER);
+
+}
+
+//--------------------------------------------------------------------
+
+bool ModbusEncoderDecoder::isLcuGroupStateRegister(const quint16 &startRegister)
+{
+    return (startRegister >= MYDECODER_LCUGROUPSTATE_REGISTER_FIRST && startRegister <=  MYDECODER_READF_LAST_LCUGREGISTER);
+
+}
+
+//--------------------------------------------------------------------
+
 void ModbusEncoderDecoder::findData4theseRegister(const quint16 &startRegister, const quint16 &count)
 {
     //registers range must be checked before
@@ -811,6 +842,7 @@ void ModbusEncoderDecoder::findData4theseRegister(const quint16 &startRegister, 
     //#define MYDECODER_READF_FIRST_EREGISTER MYDECODER_TOTALENERGY_REGISTER_FIRST
     //#define MYDECODER_READF_LAST_EREGISTER  40240
 
+    myparams.isFireflyMode = false;
 
     if(isVoltageRegister(startRegister)){
         myparams.lastPollCodes2receive.append(POLL_CODE_READ_VOLTAGE);
@@ -831,6 +863,18 @@ void ModbusEncoderDecoder::findData4theseRegister(const quint16 &startRegister, 
     if(isPulseTotalRegister(startRegister)){
         myparams.lastPollCodes2receive.append(POLL_CODE_PLSS_TOTAL);
     }
+
+
+    if(isLcuDevStateRegister(startRegister)){
+        myparams.lastPollCodes2receive.append(POLL_CODE_FF_WRITE_LAMP_CONFIG_SMART);
+        myparams.isFireflyMode = true;
+    }
+
+    if(isLcuGroupStateRegister(startRegister)){
+        myparams.lastPollCodes2receive.append(POLL_CODE_FF_WRITE_POWER_TO_GROUPS);
+        myparams.isFireflyMode = true;
+    }
+
 
     if(myparams.lastPollCodes2receive.isEmpty()){
         sendErrorCodeAndResetTheState(MODBUS_ERROR_ILLEGAL_DATA_ADDR);
@@ -1124,6 +1168,9 @@ void ModbusEncoderDecoder::fillTheAnswerHash(const quint8 &pollCode, QMap<quint1
     case POLL_CODE_GAS_TOTAL    : l = getTotalGasAnswer(h)      ; startRegister = MYDECODER_READF_FIRST_GREGISTER; break;
     case POLL_CODE_PLSS_TOTAL   : l = getTotalPulsesAnswer(myparams.dataFromDataHolder.values(pollCode))   ; startRegister = MYDECODER_READF_FIRST_PREGISTER; break;
 
+    case POLL_CODE_FF_READ_LAMP                 : l = getLcuDevAnswer(h)    ; startRegister = MYDECODER_READF_FIRST_LCUDREGISTER; break;
+    case POLL_CODE_FF_WRITE_LAMP_CONFIG_SMART   : l = getLcuDevAnswer(h)    ; startRegister = MYDECODER_READF_FIRST_LCUDREGISTER; break;
+    case POLL_CODE_FF_WRITE_POWER_TO_GROUPS     : l = getLcuGroupAnswer(h)  ; startRegister = MYDECODER_READF_FIRST_LCUGREGISTER; break;
 
     }
 
@@ -1132,6 +1179,17 @@ void ModbusEncoderDecoder::fillTheAnswerHash(const quint8 &pollCode, QMap<quint1
         mapRegisters.insert(startRegister, l.at(i));
     }
 
+
+}
+
+//--------------------------------------------------------------------
+
+void ModbusEncoderDecoder::startPollSmart(const QString &messagetag)
+{
+    if(myparams.isFireflyMode)
+        startFireflyPoll(messagetag);
+    else
+        startZbyratorPoll(messagetag);
 
 }
 
@@ -1175,6 +1233,32 @@ void ModbusEncoderDecoder::startZbyratorPoll(const QString &messagetag)
 
 //--------------------------------------------------------------------
 
+void ModbusEncoderDecoder::startFireflyPoll(const QString &messagetag)
+{
+//    emit command2extension(MTD_EXT_NAME_FIREFLY_MAIN, MTD_EXT_CUSTOM_COMMAND_7, inData);
+
+    if(verboseMode)
+        qDebug()  << "ModbusEncoderDecoder::startFireflyPoll " << messagetag << myparams.zbyratoRmessageTags.contains(messagetag) << myparams.messageTags.contains(messagetag);
+    if(myparams.zbyratoRmessageTags.contains(messagetag) || !myparams.messageTags.contains(messagetag))
+        return;//it was done before
+
+    quint8 pollCode = myparams.messageTags.value(messagetag);
+
+    myparams.zbyratoRmessageTags.insert(messagetag, pollCode);
+
+    QString ni = myparams.myDevices.value(myparams.lastmessageparams.devaddress).ni;//, QString::number(myparams.lastmessageparams.devaddress));
+
+
+
+    if(verboseMode)
+        qDebug()  << "ModbusEncoderDecoder::startFireflyPoll " << ni << int(pollCode) << QString::number(myparams.lastmessageparams.devaddress) << messagetag;
+
+    emit sendCommand2fireflyWOObjectTag(pollCode, ni, messagetag);
+
+}
+
+//--------------------------------------------------------------------
+
 ModbusAnswerList ModbusEncoderDecoder::getVoltageAnswer(const QVariantHash &h)
 {
     return ModbusElectricityMeterHelper::getVoltageAnswer(h.value("data").toHash(), verboseMode);
@@ -1209,6 +1293,20 @@ ModbusAnswerList ModbusEncoderDecoder::getTotalPulsesAnswer(const QList<QVariant
 {
     return ModbusPulseMeterHelper::getTotalPulseAnswer(listHash, verboseMode);// h.value("data").toHash(), verboseMode);
 
+}
+
+//--------------------------------------------------------------------
+
+ModbusAnswerList ModbusEncoderDecoder::getLcuDevAnswer(const QVariantHash &h)
+{
+    return ModbusFireflyDevicesHelper::getLcuStateAnswer(h.value("data").toHash(), verboseMode);// h.value("data").toHash(), verboseMode);
+}
+
+//--------------------------------------------------------------------
+
+ModbusAnswerList ModbusEncoderDecoder::getLcuGroupAnswer(const QVariantHash &h)
+{
+    return ModbusFireflyDevicesHelper::getGroupsStateAnswer(h.value("data").toHash(), verboseMode);// h.value("data").toHash(), verboseMode);
 }
 
 //--------------------------------------------------------------------

@@ -45,6 +45,7 @@ void ModbusSerialPortCover::onThreadStarted()
 
     connect(streamr, &ModbusStreamReader::sendCommand2dataHolder, this, &ModbusSerialPortCover::sendCommand2dataHolder);
     connect(streamr, &ModbusStreamReader::sendCommand2zbyrator, this, &ModbusSerialPortCover::sendCommand2zbyrator);
+    connect(streamr, &ModbusStreamReader::sendCommand2firefly, this, &ModbusSerialPortCover::sendCommand2firefly);
 
     connect(this, &ModbusSerialPortCover::onCommandReceived, streamr, &ModbusStreamReader::onCommandReceived);
     connect(this, &ModbusSerialPortCover::dataFromCache, streamr, &ModbusStreamReader::dataFromCache);

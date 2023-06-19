@@ -2,6 +2,8 @@
 
 
 
+//-------------------------------------------------------------------------------------------
+
 MODBUSDIVIDED_INT32 ModbusMeterHelper::getDividedInt32(const qint32 &value)
 {
     MODBUSDIVIDED_INT32 r;
@@ -17,6 +19,18 @@ MODBUSDIVIDED_UINT32 ModbusMeterHelper::getDividedUInt32(const quint32 &value)
     MODBUSDIVIDED_UINT32 r;
     r.lowword = value & 0xFFFF;
     r.highword = (value >> 16);
+    return r;
+}
+
+//-------------------------------------------------------------------------------------------
+
+MODBUSDIVIDED_INT64 ModbusMeterHelper::getDividedInt64(const qint64 &value)
+{
+    MODBUSDIVIDED_INT64 r;
+    r.register4 = value & 0xFFFF;
+    r.register3 = (value >> 16) & 0xFFFF;
+    r.register2 = (value >> 32) & 0xFFFF;
+    r.register1 = (value >> 48);
     return r;
 }
 
@@ -39,6 +53,17 @@ void ModbusMeterHelper::addDividedUInt322thelist(ModbusAnswerList &list, const q
     list.append(r.highword);
     list.append(r.lowword);
 
+}
+
+//-------------------------------------------------------------------------------------------
+
+void ModbusMeterHelper::addDividedInt642thelist(ModbusAnswerList &list, const qint64 &value)
+{
+    const MODBUSDIVIDED_INT64 v = getDividedInt64(value);
+    list.append(v.register1);
+    list.append(v.register2);
+    list.append(v.register3);
+    list.append(v.register4);
 }
 
 //-------------------------------------------------------------------------------------------

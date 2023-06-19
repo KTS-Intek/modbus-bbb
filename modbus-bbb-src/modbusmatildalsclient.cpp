@@ -3,6 +3,7 @@
 
 #include "moji_defy.h"
 #include "dbgaboutsourcetype.h"
+#include "definedpollcodes.h"
 
 
 ModbusMatildaLSClient::ModbusMatildaLSClient(bool verboseMode, QObject *parent) :
@@ -83,6 +84,28 @@ void ModbusMatildaLSClient::sendCommand2zbyrator(quint16 pollCode, QString ni, Q
 
 }
 
+void ModbusMatildaLSClient::sendCommand2firefly(quint16 pollCode, QString ni, QString messagetag, QString objecttag)
+{
+
+
+    if(pollCode == POLL_CODE_FF_WRITE_POWER_TO_GROUPS){
+        sendCommand2fireflyReloadSettHash(messagetag, objecttag);
+        return;
+    }
+    QVariantHash h;
+    h.insert("code", pollCode);
+    h.insert("name", QString::number(pollCode));
+    QVariantMap map;
+    map.insert("-ns", ni.split(" "));
+//    if(!hash.value("cmoperaton").toString().isEmpty())
+//        map.insert("-operation", hash.value("cmoperaton").toString());
+    h.insert("map", map);
+
+
+
+    sendCommand2fireflyHash(h, messagetag, objecttag);
+}
+
 
 bool ModbusMatildaLSClient::sendCommand2zbyratorHash(QVariantHash hash, QString messagetag, QString objecttag)
 {
@@ -120,5 +143,55 @@ bool ModbusMatildaLSClient::sendCommand2zbyratorHash(QVariantHash hash, QString 
      emit onMatildaCommandReceived(messagetag, objecttag, false, QString("Write error, %1, %2").arg(r).arg(errorString()));
      return false;
 
+}
+
+bool ModbusMatildaLSClient::sendCommand2fireflyHash(QVariantHash hash, QString messagetag, QString objecttag)
+{
+
+
+    if(state() != QLocalSocket::ConnectedState){
+      emit onMatildaCommandReceived(messagetag, objecttag, false, "there is no connection");
+      return false;
+    }
+
+     QVariantHash h;
+     h.insert("e", MTD_EXT_NAME_FIREFLY_MAIN);//destination
+     h.insert("c", MTD_EXT_CUSTOM_COMMAND_7);//command to process on the destination side
+     h.insert("d", hash);//poll arguments
+
+     const qint64 r = mWrite2extensionF(QVariant(h), MTD_EXT_COMMAND_2_OTHER_APP);
+
+
+
+     if(r > 0){
+         emit onMatildaCommandReceived(messagetag, objecttag, true, QString::number(r));
+         return true;
+     }
+     emit onMatildaCommandReceived(messagetag, objecttag, false, QString("Write error, %1, %2").arg(r).arg(errorString()));
+     return false;
+}
+
+bool ModbusMatildaLSClient::sendCommand2fireflyReloadSettHash(QString messagetag, QString objecttag)
+{
+    if(state() != QLocalSocket::ConnectedState){
+      emit onMatildaCommandReceived(messagetag, objecttag, false, "there is no connection");
+      return false;
+    }
+
+     QVariantHash h;
+     h.insert("e", MTD_EXT_NAME_FIREFLY_MAIN);//destination
+     h.insert("c", MTD_EXT_CUSTOM_COMMAND_9);//command to process on the destination side
+     h.insert("d", true);//poll arguments
+
+     const qint64 r = mWrite2extensionF(QVariant(h), MTD_EXT_COMMAND_2_OTHER_APP);
+
+
+
+     if(r > 0){
+         emit onMatildaCommandReceived(messagetag, objecttag, true, QString::number(r));
+         return true;
+     }
+     emit onMatildaCommandReceived(messagetag, objecttag, false, QString("Write error, %1, %2").arg(r).arg(errorString()));
+     return false;
 }
 

@@ -33,7 +33,8 @@ void ModbusStreamReader::createObjects()
 
     }
 
-    connect(modbusprocessor, &ModbusEncoderDecoder::sendCommand2zbyratorWOObjectTag, this, &ModbusStreamReader::sendCommand2zbyratorWOObjectTag);
+    connect(modbusprocessor, &ModbusEncoderDecoder::sendCommand2zbyratorWOObjectTag , this, &ModbusStreamReader::sendCommand2zbyratorWOObjectTag);
+    connect(modbusprocessor, &ModbusEncoderDecoder::sendCommand2fireflyWOObjectTag  , this, &ModbusStreamReader::sendCommand2fireflyWOObjectTag);
     connect(modbusprocessor, &ModbusEncoderDecoder::sendCommand2dataHolderWOObjectTag, this, &ModbusStreamReader::sendCommand2dataHolderWOObjectTag);
 
     connect(modbusprocessor, &ModbusEncoderDecoder::onData2write, this, &ModbusStreamReader::onData2write);
@@ -58,6 +59,14 @@ void ModbusStreamReader::sendCommand2dataHolderWOObjectTag(quint16 pollCode, QSt
 void ModbusStreamReader::sendCommand2zbyratorWOObjectTag(quint16 pollCode, QString ni, QString messagetag)
 {
     emit sendCommand2zbyrator(pollCode, ni, messagetag, myparams.objecttag);
+
+}
+
+//----------------------------------------------------------------------
+
+void ModbusStreamReader::sendCommand2fireflyWOObjectTag(quint16 pollCode, QString ni, QString messagetag)
+{
+    emit sendCommand2firefly(pollCode, ni, messagetag, myparams.objecttag);
 
 }
 

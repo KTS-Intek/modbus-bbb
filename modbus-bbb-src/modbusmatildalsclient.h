@@ -27,8 +27,15 @@ public slots:
 
     void sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
 
+    void sendCommand2firefly(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
+
 private:
     bool sendCommand2zbyratorHash(QVariantHash hash , QString messagetag, QString objecttag);
+
+    bool sendCommand2fireflyHash(QVariantHash hash , QString messagetag, QString objecttag);
+
+    bool sendCommand2fireflyReloadSettHash(QString messagetag, QString objecttag);
+
 
 };
 

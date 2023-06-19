@@ -135,6 +135,7 @@ void ModbusResourceManager::createTcpServer()
     connect(server, &ModbusTCPServer::restartApp            , this, &ModbusResourceManager::restartApp);
     connect(server, &ModbusTCPServer::sendCommand2dataHolder, this, &ModbusResourceManager::sendCommand2dataHolder);
     connect(server, &ModbusTCPServer::sendCommand2zbyrator  , this, &ModbusResourceManager::sendCommand2zbyrator);
+    connect(server, &ModbusTCPServer::sendCommand2firefly   , this, &ModbusResourceManager::sendCommand2firefly);
 
     connect(this, &ModbusResourceManager::onCommandReceived         , server, &ModbusTCPServer::onCommandReceived);
     connect(this, &ModbusResourceManager::onMatildaCommandReceived  , server, &ModbusTCPServer::onMatildaCommandReceived);
@@ -175,6 +176,7 @@ void ModbusResourceManager::createSerialPortReader()
 
     connect(serialp, &ModbusSerialPortCover::sendCommand2dataHolder, this, &ModbusResourceManager::sendCommand2dataHolder);
     connect(serialp, &ModbusSerialPortCover::sendCommand2zbyrator  , this, &ModbusResourceManager::sendCommand2zbyrator);
+    connect(serialp, &ModbusSerialPortCover::sendCommand2firefly    , this, &ModbusResourceManager::sendCommand2firefly);
 
     connect(this, &ModbusResourceManager::onCommandReceived         , serialp, &ModbusSerialPortCover::onCommandReceived);
     connect(this, &ModbusResourceManager::onMatildaCommandReceived  , serialp, &ModbusSerialPortCover::onMatildaCommandReceived);
@@ -221,7 +223,9 @@ void ModbusResourceManager::createMatildaLSClient()
 
 //    connect(this, &ModbusResourceManager::command2extensionClient, extSocket, &ModbusMatildaLSClient::command2extensionClient   ); do not use it here
 
-    connect(this, &ModbusResourceManager::sendCommand2zbyrator, extSocket, &ModbusMatildaLSClient::sendCommand2zbyrator);
+    connect(this, &ModbusResourceManager::sendCommand2zbyrator  , extSocket, &ModbusMatildaLSClient::sendCommand2zbyrator);
+    connect(this, &ModbusResourceManager::sendCommand2firefly   , extSocket, &ModbusMatildaLSClient::sendCommand2firefly);
+
     connect(extSocket, &ModbusMatildaLSClient::onMatildaCommandReceived, this, &ModbusResourceManager::onMatildaCommandReceived);
 
     extSocketThrd->start();

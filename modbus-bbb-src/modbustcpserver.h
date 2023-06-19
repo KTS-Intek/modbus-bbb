@@ -24,6 +24,8 @@ signals:
     //from streamreader
     void sendCommand2zbyrator(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
 
+    void sendCommand2firefly(quint16 pollCode, QString ni, QString messagetag, QString objecttag);
+
     void sendCommand2dataHolder(quint16 pollCode, QString devID, bool useSn4devID, QString messagetag, QString objecttag);
     //to streamreader
 
